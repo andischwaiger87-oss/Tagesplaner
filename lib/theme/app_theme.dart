@@ -35,7 +35,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: bg,
+      scaffoldBackgroundColor: dark ? bg : Colors.transparent,
       textTheme: GoogleFonts.lexendTextTheme(baseTextTheme)
           .apply(bodyColor: text, displayColor: text),
       splashFactory: InkSparkle.splashFactory,

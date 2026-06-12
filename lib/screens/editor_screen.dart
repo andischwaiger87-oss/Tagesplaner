@@ -67,6 +67,7 @@ class EditorScreen extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                   itemCount: st.plan.length,
                   onReorder: st.reorder,
+                  buildDefaultDragHandles: false,
                   itemBuilder: (c, i) => _EditRow(
                     key: ValueKey(st.plan[i].id), st: st, index: i),
                 ),
@@ -111,7 +112,14 @@ class _EditRow extends StatelessWidget {
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(.05), blurRadius: 10)]),
       child: Column(children: [
         Row(children: [
-          IconTile(activity: a, tileSize: 48, iconSize: 32, radius: 14),
+          ReorderableDragStartListener(
+            index: index,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 2),
+              child: Icon(Icons.drag_indicator_rounded, size: 22, color: cs.onSurface.withOpacity(.35)),
+            ),
+          ),
+          IconTile(activity: a, tileSize: 46, iconSize: 30, radius: 13),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(a.label, maxLines: 1, overflow: TextOverflow.ellipsis,
@@ -120,9 +128,9 @@ class _EditRow extends StatelessWidget {
                 style: TextStyle(color: cs.onSurface.withOpacity(.55), fontSize: 12)),
           ])),
           _sq(context, Icons.remove_rounded, () => st.changeDuration(index, -5)),
-          const SizedBox(width: 6),
+          const SizedBox(width: 5),
           _sq(context, Icons.add_rounded, () => st.changeDuration(index, 5)),
-          const SizedBox(width: 6),
+          const SizedBox(width: 5),
           _sq(context, Icons.delete_outline_rounded, () => st.removeAt(index)),
         ]),
         if (isCustom) Padding(
@@ -144,7 +152,7 @@ class _EditRow extends StatelessWidget {
   Widget _sq(BuildContext c, IconData ic, VoidCallback on) {
     final cs = Theme.of(c).colorScheme;
     return InkWell(onTap: on, borderRadius: BorderRadius.circular(12),
-      child: Container(width: 38, height: 38,
+      child: Container(width: 36, height: 36,
         decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
         child: Icon(ic, size: 20, color: cs.onSurface)));
   }

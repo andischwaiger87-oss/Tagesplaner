@@ -20,15 +20,29 @@ class TagesbegleiterApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.watch<AppState>().settings;
+    final seed = kSeeds[s.themeIndex.clamp(0, kSeeds.length - 1)];
     return MaterialApp(
       title: 'Tagesbegleiter',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.build(themeIndex: s.themeIndex, highContrast: s.highContrast),
-      // Schriftgröße sicher über den TextScaler (verursacht keinen Theme-Crash).
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(s.fontScale)),
-        child: child!,
-      ),
+      builder: (context, child) {
+        final deco = s.highContrast
+            ? const BoxDecoration(color: Color(0xFF0F1413))
+            : BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                  colors: [seed.withOpacity(.22), const Color(0xFFEFF3F1), const Color(0xFFF4F7F5)],
+                  stops: const [0.0, 0.40, 1.0],
+                ),
+              );
+        return Container(
+          decoration: deco,
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(s.fontScale)),
+            child: child!,
+          ),
+        );
+      },
       home: const RootScaffold(),
     );
   }
@@ -46,10 +60,11 @@ class _RootScaffoldState extends State<RootScaffold> {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
     if (st.loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(backgroundColor: Colors.transparent, body: Center(child: CircularProgressIndicator()));
     }
     const screens = [NowScreen(), PlanScreen(), EditorScreen(), SettingsScreen()];
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: IndexedStack(index: _tab, children: screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,

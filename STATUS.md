@@ -2,7 +2,7 @@
 
 Stand: 12. Juni 2026 · Ziel 100% = fertig, getestet, fehlerfrei, Go-Live
 
-## Gesamtfortschritt: ~50 %
+## Gesamtfortschritt: ~55 %
 
 | Bereich | Status | % |
 |---|---|---|
@@ -37,3 +37,10 @@ cd app
 flutter pub get      # google_fonts (Lexend) wird geladen
 flutter run -d chrome
 ```
+
+
+## Politur (12.6., Abend)
+- Lebendiger Hintergrund: sanfter Farbverlauf statt flachem Grau (passt sich dem Farbthema an).
+- „Jetzt": Karte mittig ausbalanciert (keine große Leere mehr).
+- Editor-Fix: eigener Verschiebe-Griff links – Verschieben & Löschen überlagern sich nicht mehr.
+- Suche: im „Baustein hinzufügen"-Fenster (Suchfeld + Kategorie-Chips + Kachel-Raster).
