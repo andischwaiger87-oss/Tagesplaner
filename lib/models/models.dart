@@ -69,6 +69,7 @@ class AppSettings {
     this.name = 'Andi', this.voice = 'f', this.highContrast = false,
     this.fontScale = 1.0, this.reduceMotion = false, this.showNext = true,
     this.showClock = true, this.vibrate = true, this.volume = 1.0, this.themeIndex = 0,
+    this.avatarUser, this.avatarF, this.avatarM,
   });
 
   Map<String, dynamic> toJson() => {
