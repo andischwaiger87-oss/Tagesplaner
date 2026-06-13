@@ -2,7 +2,7 @@
 
 Stand: 12. Juni 2026 · Ziel 100% = fertig, getestet, fehlerfrei, Go-Live
 
-## Gesamtfortschritt: ~55 %
+## Gesamtfortschritt: ~58 %
 
 | Bereich | Status | % |
 |---|---|---|
@@ -44,3 +44,17 @@ flutter run -d chrome
 - „Jetzt": Karte mittig ausbalanciert (keine große Leere mehr).
 - Editor-Fix: eigener Verschiebe-Griff links – Verschieben & Löschen überlagern sich nicht mehr.
 - Suche: im „Baustein hinzufügen"-Fenster (Suchfeld + Kategorie-Chips + Kachel-Raster).
+
+
+## Bugfixes & Features (18.6.)
+- Sprachausgabe repariert: Frau (de_f) als Standard, Mann (de_m) umschaltbar – die
+  echten Audiodateien werden jetzt zuverlässig abgespielt (web-sicher über Bytes),
+  Roboterstimme nur noch als Notfall-Rückfall.
+- Einstellungen werden bei jeder Änderung gespeichert und beim Neuladen geladen.
+- Editor stabilisiert: Verschieben (eigener ⠿-Griff) und Löschen klar getrennt;
+  beim Löschen kommt „Rückgängig"; kein versehentliches Audio mehr beim Bearbeiten.
+- Klares Feedback (kleine Hinweise) bei Hinzufügen, Löschen, Speichern, Sortieren.
+- Dauer-Regler beschriftet („10 Min" mit − / +), damit verständlich.
+- Einstellungen-Überschriften jetzt dunkel/lesbar.
+- Profilbild (oben neben dem Namen) + Avatar-Bilder für Frau/Mann hochladbar & gespeichert.
+- Englische Stimme entfernt (Standard: deutsche Frauenstimme).

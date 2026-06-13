@@ -97,6 +97,7 @@ class AppState extends ChangeNotifier {
   Future<void> _reschedule() async { try { await _notif.scheduleAll(plan); } catch (_) {} }
 
   void _afterPlanChange() {
+    try { media.stop(); } catch (_) {}
     rechain(); _recompute(announce: false); notifyListeners(); _reschedule();
   }
 
@@ -121,6 +122,11 @@ class AppState extends ChangeNotifier {
   void removeAt(int i) {
     plan.removeAt(i);
     if (currentIndex >= plan.length) currentIndex = (plan.length - 1).clamp(0, 999);
+    _afterPlanChange();
+  }
+
+  void insertActivity(int index, Activity a) {
+    plan.insert(index.clamp(0, plan.length), a);
     _afterPlanChange();
   }
 

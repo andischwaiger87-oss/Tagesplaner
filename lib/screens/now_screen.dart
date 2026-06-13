@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/activity_icon.dart';
+import '../services/image_util.dart';
 
 class NowScreen extends StatelessWidget {
   const NowScreen({super.key});
@@ -18,11 +19,18 @@ class NowScreen extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Hallo ${s.name}',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: cs.onSurface)),
-          const SizedBox(height: 2),
-          Text(st.isActive ? 'Das ist jetzt dran' : 'Als Nächstes',
-              style: TextStyle(fontSize: 16, color: cs.onSurface.withOpacity(.6))),
+          Row(children: [
+            CircleAvatar(radius: 24, backgroundColor: AppTheme.tile(context),
+              backgroundImage: avatarProvider(s.avatarUser),
+              child: s.avatarUser == null ? const Icon(Icons.person_rounded, color: Colors.white, size: 26) : null),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Hallo ${s.name}',
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: cs.onSurface)),
+              Text(st.isActive ? 'Das ist jetzt dran' : 'Als Nächstes',
+                  style: TextStyle(fontSize: 16, color: cs.onSurface.withOpacity(.6))),
+            ])),
+          ]),
           Expanded(
             child: Center(
               child: SingleChildScrollView(

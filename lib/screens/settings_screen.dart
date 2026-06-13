@@ -2,85 +2,159 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../services/image_util.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
+
+  void _toast(BuildContext c, String m) {
+    ScaffoldMessenger.of(c)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(m), duration: const Duration(milliseconds: 1000),
+          behavior: SnackBarBehavior.floating));
+  }
+
   @override
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
     final cs = Theme.of(context).colorScheme;
     final s = st.settings;
+    final ink = cs.onSurface;
+
     return SafeArea(
-      child: ListView(padding: const EdgeInsets.fromLTRB(18, 16, 18, 24), children: [
-        Text('Einstellungen', style: TextStyle(color: cs.onPrimary, fontSize: 24, fontWeight: FontWeight.w700)),
-        Text('Alles individuell anpassbar', style: TextStyle(color: cs.onPrimary.withOpacity(.85), fontSize: 15)),
-        const SizedBox(height: 14),
+      child: ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 28), children: [
+        Text('Einstellungen', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: ink)),
+        Text('Alles individuell anpassbar', style: TextStyle(fontSize: 16, color: ink.withOpacity(.6))),
+        const SizedBox(height: 16),
 
-        _section(cs, 'Persönlich', [
-          _rowWidget('Name', SizedBox(width: 170, child: TextField(
-            controller: TextEditingController(text: s.name)
-              ..selection = TextSelection.collapsed(offset: s.name.length),
-            onSubmitted: (v) => st.updateSettings((x) => x.name = v.isEmpty ? 'Andi' : v),
-            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-          )), cs),
-          _rowWidget('Stimme', DropdownButton<String>(
-            value: s.voice, underline: const SizedBox(),
-            items: const [
-              DropdownMenuItem(value: 'f', child: Text('Frau (Deutsch)')),
-              DropdownMenuItem(value: 'm', child: Text('Mann (Deutsch)')),
-            ],
-            onChanged: (v) => st.updateSettings((x) => x.voice = v ?? 'f'),
-          ), cs),
+        _header('Persönlich', ink),
+        _card(cs, [
+          // Profilbild + Name
+          Row(children: [
+            _avatarPick(context, st, s.avatarUser, 56, (b) => st.updateSettings((x) => x.avatarUser = b)),
+            const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Profilbild', style: TextStyle(fontWeight: FontWeight.w600, color: ink)),
+              Text('Wird oben neben deinem Namen angezeigt',
+                  style: TextStyle(fontSize: 12.5, color: ink.withOpacity(.55))),
+            ])),
+          ]),
+          const Divider(height: 26),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text('Name', style: TextStyle(fontWeight: FontWeight.w600, color: ink)),
+            SizedBox(width: 170, child: TextField(
+              controller: TextEditingController(text: s.name)
+                ..selection = TextSelection.collapsed(offset: s.name.length),
+              onSubmitted: (v) { st.updateSettings((x) => x.name = v.trim().isEmpty ? 'Andi' : v.trim()); _toast(context, 'Name gespeichert'); },
+              decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+            )),
+          ]),
         ]),
 
-        _section(cs, 'Darstellung', [
-          _rowWidget('Farbthema', Row(mainAxisSize: MainAxisSize.min, children: [
-            for (int i = 0; i < kSeeds.length; i++)
-              GestureDetector(
-                onTap: () => st.updateSettings((x) => x.themeIndex = i),
-                child: Container(width: 30, height: 30, margin: const EdgeInsets.only(left: 8),
-                  decoration: BoxDecoration(color: kSeeds[i], shape: BoxShape.circle,
-                    border: Border.all(color: s.themeIndex == i ? cs.onSurface : Colors.transparent, width: 3))),
-              ),
-          ]), cs),
-          _switch('Hoher Kontrast', s.highContrast, (v) => st.updateSettings((x) => x.highContrast = v), cs),
-          _rowWidget('Schriftgröße', SizedBox(width: 160, child: Slider(
+        _header('Stimme', ink),
+        _card(cs, [
+          Text('Mit welcher Stimme soll vorgelesen werden?',
+              style: TextStyle(color: ink.withOpacity(.7), fontSize: 14)),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: _voiceCard(context, st, 'f', 'Frau', s.avatarF,
+                (b) => st.updateSettings((x) => x.avatarF = b))),
+            const SizedBox(width: 12),
+            Expanded(child: _voiceCard(context, st, 'm', 'Mann', s.avatarM,
+                (b) => st.updateSettings((x) => x.avatarM = b))),
+          ]),
+        ]),
+
+        _header('Darstellung', ink),
+        _card(cs, [
+          _row('Farbthema', ink, Row(mainAxisSize: MainAxisSize.min, children: [
+            for (int i = 0; i < kSeeds.length; i++) GestureDetector(
+              onTap: () { st.updateSettings((x) => x.themeIndex = i); _toast(context, 'Farbe übernommen'); },
+              child: Container(width: 30, height: 30, margin: const EdgeInsets.only(left: 8),
+                decoration: BoxDecoration(color: kSeeds[i], shape: BoxShape.circle,
+                  border: Border.all(color: s.themeIndex == i ? ink : Colors.transparent, width: 3))),
+            ),
+          ])),
+          _switch(context, 'Hoher Kontrast', ink, s.highContrast,
+              (v) => st.updateSettings((x) => x.highContrast = v)),
+          _row('Schriftgröße', ink, SizedBox(width: 170, child: Slider(
             value: s.fontScale, min: 1, max: 1.4, divisions: 4,
-            onChanged: (v) => st.updateSettings((x) => x.fontScale = v))), cs),
-          _switch('Animationen reduzieren', s.reduceMotion, (v) => st.updateSettings((x) => x.reduceMotion = v), cs),
+            onChanged: (v) => st.updateSettings((x) => x.fontScale = v),
+            onChangeEnd: (v) => _toast(context, 'Schriftgröße gespeichert')))),
+          _switch(context, 'Animationen reduzieren', ink, s.reduceMotion,
+              (v) => st.updateSettings((x) => x.reduceMotion = v)),
         ]),
 
-        _section(cs, 'Verhalten', [
-          _switch('„Als Nächstes“ zeigen', s.showNext, (v) => st.updateSettings((x) => x.showNext = v), cs),
-          _switch('Uhrzeiten zeigen', s.showClock, (v) => st.updateSettings((x) => x.showClock = v), cs),
-          _switch('Vibration', s.vibrate, (v) => st.updateSettings((x) => x.vibrate = v), cs),
-          _rowWidget('Lautstärke', SizedBox(width: 160, child: Slider(
+        _header('Verhalten', ink),
+        _card(cs, [
+          _switch(context, '„Als Nächstes" zeigen', ink, s.showNext, (v) => st.updateSettings((x) => x.showNext = v)),
+          _switch(context, 'Uhrzeiten zeigen', ink, s.showClock, (v) => st.updateSettings((x) => x.showClock = v)),
+          _switch(context, 'Vibration', ink, s.vibrate, (v) => st.updateSettings((x) => x.vibrate = v)),
+          _row('Lautstärke', ink, SizedBox(width: 170, child: Slider(
             value: s.volume, min: 0, max: 1, divisions: 10,
-            onChanged: (v) => st.updateSettings((x) => x.volume = v))), cs),
+            onChanged: (v) => st.updateSettings((x) => x.volume = v),
+            onChangeEnd: (v) => _toast(context, 'Lautstärke gespeichert')))),
         ]),
       ]),
     );
   }
 
-  Widget _section(ColorScheme cs, String title, List<Widget> rows) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(padding: const EdgeInsets.fromLTRB(4, 6, 0, 8),
-        child: Text(title, style: TextStyle(color: cs.onPrimary, fontWeight: FontWeight.w700, fontSize: 16))),
-      Container(
-        decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(22)),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(children: rows),
-      ),
-      const SizedBox(height: 14),
-    ]);
+  // ---- Bausteine ----
+  Widget _header(String t, Color ink) => Padding(
+    padding: const EdgeInsets.fromLTRB(4, 8, 0, 8),
+    child: Text(t, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: ink)));
 
-  Widget _rowWidget(String k, Widget control, ColorScheme cs) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 12),
+  Widget _card(ColorScheme cs, List<Widget> children) => Container(
+    decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(22),
+      boxShadow: [BoxShadow(color: Colors.black.withOpacity(.05), blurRadius: 14)]),
+    padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+    margin: const EdgeInsets.only(bottom: 16),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children));
+
+  Widget _row(String k, Color ink, Widget control) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 10),
     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Flexible(child: Text(k, style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface))),
-      control,
+      Flexible(child: Text(k, style: TextStyle(fontWeight: FontWeight.w600, color: ink))), control,
     ]));
 
-  Widget _switch(String k, bool v, ValueChanged<bool> on, ColorScheme cs) => _rowWidget(
-    k, Switch(value: v, onChanged: on), cs);
+  Widget _switch(BuildContext c, String k, Color ink, bool v, ValueChanged<bool> on) =>
+    _row(k, ink, Switch(value: v, onChanged: (nv) { on(nv); _toast(c, nv ? 'Aktiviert' : 'Deaktiviert'); }));
+
+  Widget _avatarPick(BuildContext c, AppState st, String? b64, double size, ValueChanged<String?> save) =>
+    GestureDetector(
+      onTap: () async { final img = await pickImageBase64(); if (img != null) { save(img); _toast(c, 'Bild gespeichert'); } },
+      child: Stack(children: [
+        CircleAvatar(radius: size / 2, backgroundColor: AppTheme.tile(c),
+          backgroundImage: avatarProvider(b64),
+          child: b64 == null ? Icon(Icons.person_rounded, color: Colors.white, size: size * .55) : null),
+        Positioned(right: 0, bottom: 0, child: Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(color: kAccent, shape: BoxShape.circle,
+            border: Border.all(color: Theme.of(c).colorScheme.surface, width: 2)),
+          child: const Icon(Icons.photo_camera_rounded, color: Colors.white, size: 13))),
+      ]),
+    );
+
+  Widget _voiceCard(BuildContext c, AppState st, String voice, String label, String? b64, ValueChanged<String?> save) {
+    final cs = Theme.of(c).colorScheme;
+    final on = st.settings.voice == voice;
+    return GestureDetector(
+      onTap: () { st.updateSettings((x) => x.voice = voice); _toast(c, 'Stimme: $label'); },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: on ? AppTheme.tile(c).withOpacity(.12) : cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: on ? kAccent : Colors.transparent, width: 2),
+        ),
+        child: Column(children: [
+          _avatarPick(c, st, b64, 56, save),
+          const SizedBox(height: 8),
+          Text(label, style: TextStyle(fontWeight: FontWeight.w700, color: cs.onSurface)),
+          Text(on ? 'ausgewählt' : 'auswählen',
+              style: TextStyle(fontSize: 12, color: on ? kAccent : cs.onSurface.withOpacity(.5))),
+        ]),
+      ),
+    );
+  }
 }

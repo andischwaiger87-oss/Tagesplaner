@@ -61,6 +61,9 @@ class AppSettings {
   bool vibrate;
   double volume;
   int themeIndex;
+  String? avatarUser;
+  String? avatarF;
+  String? avatarM;
 
   AppSettings({
     this.name = 'Andi', this.voice = 'f', this.highContrast = false,
@@ -72,6 +75,7 @@ class AppSettings {
         'name': name, 'voice': voice, 'highContrast': highContrast,
         'fontScale': fontScale, 'reduceMotion': reduceMotion, 'showNext': showNext,
         'showClock': showClock, 'vibrate': vibrate, 'volume': volume, 'themeIndex': themeIndex,
+        'avatarUser': avatarUser, 'avatarF': avatarF, 'avatarM': avatarM,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> j) => AppSettings(
@@ -81,5 +85,6 @@ class AppSettings {
         reduceMotion: j['reduceMotion'] ?? false, showNext: j['showNext'] ?? true,
         showClock: j['showClock'] ?? true, vibrate: j['vibrate'] ?? true,
         volume: (j['volume'] ?? 1.0).toDouble(), themeIndex: j['themeIndex'] ?? 0,
+        avatarUser: j['avatarUser'], avatarF: j['avatarF'], avatarM: j['avatarM'],
       );
 }
