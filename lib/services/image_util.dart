@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/widgets.dart';
 import 'package:file_picker/file_picker.dart';
 
+final Map<String, MemoryImage> _avatarCache = {};
+
 // Wählt ein Bild und gibt es als Base64-String zurück (plattformübergreifend).
 Future<String?> pickImageBase64() async {
   final r = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
@@ -11,5 +13,7 @@ Future<String?> pickImageBase64() async {
   return base64Encode(bytes);
 }
 
-ImageProvider? avatarProvider(String? b64) =>
-    (b64 == null || b64.isEmpty) ? null : MemoryImage(base64Decode(b64));
+ImageProvider? avatarProvider(String? b64) {
+  if (b64 == null || b64.isEmpty) return null;
+  return _avatarCache.putIfAbsent(b64, () => MemoryImage(base64Decode(b64)));
+}

@@ -21,6 +21,11 @@ List<ModuleCategory> moduleCategories() => [
     _t('anziehen', 'Anziehen', 'Jetzt ist es Zeit zum Anziehen.', 10),
     _t('toilette', 'Toilette', 'Jetzt ist es Zeit für die Toilette.', 5),
     _t('eincremen', 'Eincremen', 'Jetzt ist es Zeit zum Eincremen.', 5),
+    _t('haende_waschen', 'Hände waschen', 'Jetzt ist es Zeit, die Hände zu waschen.', 3),
+    _t('haare_waschen', 'Haare waschen', 'Jetzt ist es Zeit, die Haare zu waschen.', 10),
+    _t('naegel_schneiden', 'Nägel schneiden', 'Jetzt ist es Zeit, die Nägel zu schneiden.', 10),
+    _t('schuhe_anziehen', 'Schuhe anziehen', 'Jetzt ist es Zeit, die Schuhe anzuziehen.', 5),
+    _t('jacke_anziehen', 'Jacke anziehen', 'Jetzt ist es Zeit, die Jacke anzuziehen.', 3),
   ]),
   ModuleCategory('Essen & Trinken', [
     _t('fruehstueck', 'Frühstück', 'Jetzt ist Frühstück.', 20),
@@ -31,6 +36,10 @@ List<ModuleCategory> moduleCategories() => [
     _t('kochen', 'Kochen', 'Jetzt ist es Zeit zum Kochen.', 30),
     _t('tisch_decken', 'Tisch decken', 'Jetzt ist es Zeit, den Tisch zu decken.', 10),
     _t('abwaschen', 'Abwaschen', 'Jetzt ist es Zeit zum Abwaschen.', 15),
+    _t('kaffee', 'Kaffee', 'Jetzt ist Zeit für einen Kaffee.', 10),
+    _t('tee', 'Tee', 'Jetzt ist Zeit für einen Tee.', 10),
+    _t('obst', 'Obst essen', 'Jetzt ist Zeit für etwas Obst.', 10),
+    _t('wasser', 'Wasser trinken', 'Bitte ein Glas Wasser trinken.', 2),
   ]),
   ModuleCategory('Gesundheit', [
     _t('medikament', 'Medikament', 'Jetzt ist es Zeit für dein Medikament.', 2),
@@ -38,6 +47,11 @@ List<ModuleCategory> moduleCategories() => [
     _t('blutdruck', 'Blutdruck messen', 'Jetzt ist es Zeit, den Blutdruck zu messen.', 5),
     _t('arzt', 'Arzt-Termin', 'Jetzt ist ein Termin beim Arzt.', 30),
     _t('therapie', 'Therapie', 'Jetzt ist es Zeit für die Therapie.', 30),
+    _t('insulin', 'Insulin spritzen', 'Jetzt ist es Zeit für das Insulin.', 5),
+    _t('brille_putzen', 'Brille putzen', 'Jetzt ist es Zeit, die Brille zu putzen.', 3),
+    _t('physio', 'Physiotherapie', 'Jetzt ist es Zeit für die Physiotherapie.', 45),
+    _t('logopaedie', 'Logopädie', 'Jetzt ist es Zeit für die Logopädie.', 45),
+    _t('haende_desinfizieren', 'Hände desinfizieren', 'Bitte die Hände desinfizieren.', 2),
   ]),
   ModuleCategory('Unterwegs', [
     _t('bus_nehmen', 'Bus nehmen', 'Jetzt ist es Zeit, den Bus zu nehmen.', 20),
@@ -46,6 +60,7 @@ List<ModuleCategory> moduleCategories() => [
     _t('fahrrad', 'Fahrrad fahren', 'Jetzt fahren wir Fahrrad.', 20),
     _t('auto_fahren', 'Auto fahren', 'Jetzt fahren wir mit dem Auto.', 20),
     _t('spazieren', 'Spazieren', 'Jetzt ist es Zeit für einen Spaziergang.', 30),
+    _t('taxi', 'Taxi nehmen', 'Jetzt ist es Zeit, das Taxi zu nehmen.', 20),
   ]),
   ModuleCategory('Arbeit & Schule', [
     _t('arbeit', 'Arbeit', 'Jetzt ist es Zeit für die Arbeit.', 60),
@@ -55,6 +70,7 @@ List<ModuleCategory> moduleCategories() => [
     _t('tasche_packen', 'Tasche packen', 'Jetzt ist es Zeit, die Tasche zu packen.', 10),
     _t('pause', 'Pause', 'Jetzt ist Pause.', 15),
     _t('aufgabe', 'Aufgabe erledigen', 'Jetzt ist es Zeit für die Aufgabe.', 20),
+    _t('lernen', 'Lernen', 'Jetzt ist es Zeit zum Lernen.', 30),
   ]),
   ModuleCategory('Haushalt', [
     _t('aufraeumen', 'Aufräumen', 'Jetzt ist es Zeit zum Aufräumen.', 15),
@@ -65,6 +81,10 @@ List<ModuleCategory> moduleCategories() => [
     _t('muell', 'Müll rausbringen', 'Jetzt ist es Zeit, den Müll rauszubringen.', 5),
     _t('blumen_giessen', 'Blumen gießen', 'Jetzt ist es Zeit, die Blumen zu gießen.', 5),
     _t('bett_machen', 'Bett machen', 'Jetzt ist es Zeit, das Bett zu machen.', 5),
+    _t('geschirrspueler', 'Geschirrspüler', 'Jetzt ist es Zeit für den Geschirrspüler.', 10),
+    _t('post_holen', 'Post holen', 'Jetzt ist es Zeit, die Post zu holen.', 5),
+    _t('tisch_abraeumen', 'Tisch abräumen', 'Jetzt ist es Zeit, den Tisch abzuräumen.', 5),
+    _t('staub_wischen', 'Staub wischen', 'Jetzt ist es Zeit zum Staubwischen.', 15),
   ]),
   ModuleCategory('Freizeit', [
     _t('fernsehen', 'Fernsehen', 'Jetzt ist Zeit zum Fernsehen.', 30),
@@ -77,12 +97,21 @@ List<ModuleCategory> moduleCategories() => [
     _t('sport', 'Sport', 'Jetzt ist es Zeit für Sport.', 30),
     _t('entspannen', 'Entspannen', 'Jetzt ist es Zeit zum Entspannen.', 15),
     _t('ausruhen', 'Ausruhen', 'Jetzt ist es Zeit zum Ausruhen.', 15),
+    _t('radio', 'Radio hören', 'Jetzt ist Zeit, Radio zu hören.', 20),
+    _t('zeitung', 'Zeitung lesen', 'Jetzt ist Zeit, die Zeitung zu lesen.', 20),
+    _t('hoerbuch', 'Hörbuch', 'Jetzt ist Zeit für ein Hörbuch.', 30),
+    _t('singen', 'Singen', 'Jetzt ist Zeit zum Singen.', 15),
+    _t('gymnastik', 'Gymnastik', 'Jetzt ist es Zeit für Gymnastik.', 20),
+    _t('meditation', 'Meditation', 'Jetzt ist es Zeit für die Meditation.', 15),
+    _t('nickerchen', 'Nickerchen', 'Jetzt ist Zeit für ein Nickerchen.', 30),
   ]),
   ModuleCategory('Abend & Nacht', [
     _t('abendroutine', 'Fertig machen für die Nacht', 'Jetzt machen wir uns fertig für die Nacht.', 15),
     _t('schlafanzug', 'Schlafanzug anziehen', 'Jetzt ist es Zeit, den Schlafanzug anzuziehen.', 5),
     _t('schlafengehen', 'Schlafen gehen', 'Jetzt ist es Zeit zum Schlafengehen.', 5),
     _t('gute_nacht', 'Gute Nacht', 'Gute Nacht. Schlaf gut.', 2),
+    _t('wecker_stellen', 'Wecker stellen', 'Jetzt ist es Zeit, den Wecker zu stellen.', 2),
+    _t('handy_laden', 'Handy laden', 'Jetzt ist es Zeit, das Handy zu laden.', 2),
   ]),
 ];
 

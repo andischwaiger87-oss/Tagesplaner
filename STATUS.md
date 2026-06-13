@@ -2,7 +2,7 @@
 
 Stand: 12. Juni 2026 · Ziel 100% = fertig, getestet, fehlerfrei, Go-Live
 
-## Gesamtfortschritt: ~62 %
+## Gesamtfortschritt: ~66 %
 
 | Bereich | Status | % |
 |---|---|---|
@@ -69,3 +69,13 @@ flutter run -d chrome
 - Sinnvoller Standard-Tagesplan (ganztags, realistische Reihenfolge) – lädt einmalig neu.
 - Hinzufügen-Fenster: sichtbare Bestätigung (✓-Häkchen + Leiste), X zum Schließen.
 - Meldungen kompakt und schließen sich selbst.
+
+
+## Feinschliff (13.6., Teil 2)
+- Zeitanzeige nie über 60 Min (z. B. „1 Std 29 Min" statt „89 Min").
+- Dauer frei eingebbar (eigene Minuten) – mit Überschneidungs-Schutz.
+- Avatar-Blinken behoben (Bild wird zwischengespeichert) + Bild entfernbar.
+- Tagesplan-Titel „Mein Tag".
+- 29 neue Bausteine (jetzt 87) + Excel-Produktionsliste erweitert (inkl. Hilfe-Audios).
+- Hilfe-/Einführungs-Wizard (6 Schritte, Stepper) – jederzeit in den Einstellungen,
+  mit Vorlesen (Audio intro1–intro6_de_f/_de_m, sonst Gerätestimme).

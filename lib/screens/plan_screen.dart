@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/activity_icon.dart';
+import '../util/format.dart';
 
 class PlanScreen extends StatelessWidget {
   const PlanScreen({super.key});
@@ -12,7 +13,7 @@ class PlanScreen extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return SafeArea(
       child: ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 20), children: [
-        Text('Dein Tag', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: cs.onSurface)),
+        Text('Mein Tag', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: cs.onSurface)),
         Text('ganzer Überblick', style: TextStyle(fontSize: 16, color: cs.onSurface.withOpacity(.6))),
         const SizedBox(height: 16),
         for (int i = 0; i < st.plan.length; i++) _row(context, st, i, cs),
@@ -37,7 +38,7 @@ class PlanScreen extends StatelessWidget {
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(a.label, style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: cs.onSurface)),
           if (st.settings.showClock)
-            Text('${a.timeLabel} Uhr · ${a.durationMin} Min.',
+            Text('${a.timeLabel} Uhr · ${fmtDuration(a.durationMin)}',
                 style: TextStyle(fontSize: 13, color: cs.onSurface.withOpacity(.6))),
         ])),
         if (isCurrent) Container(

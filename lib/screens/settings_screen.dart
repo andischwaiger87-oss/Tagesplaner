@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../services/image_util.dart';
+import 'help_wizard.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -95,6 +96,19 @@ class SettingsScreen extends StatelessWidget {
             onChanged: (v) => st.updateSettings((x) => x.volume = v),
             onChangeEnd: (v) => _toast(context, 'Lautstärke gespeichert')))),
         ]),
+
+        _header('Hilfe', ink),
+        _card(cs, [
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.help_outline_rounded, color: cs.primary),
+            title: Text('Einführung & Hilfe', style: TextStyle(fontWeight: FontWeight.w600, color: ink)),
+            subtitle: Text('Schritt für Schritt erklärt – auch zum Vorlesen',
+                style: TextStyle(fontSize: 12.5, color: ink.withOpacity(.55))),
+            trailing: Icon(Icons.chevron_right_rounded, color: ink.withOpacity(.5)),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpWizard())),
+          ),
+        ]),
       ]),
     );
   }
@@ -122,7 +136,7 @@ class SettingsScreen extends StatelessWidget {
 
   Widget _avatarPick(BuildContext c, AppState st, String? b64, double size, ValueChanged<String?> save) =>
     GestureDetector(
-      onTap: () async { final img = await pickImageBase64(); if (img != null) { save(img); _toast(c, 'Bild gespeichert'); } },
+      onTap: () => _avatarMenu(c, b64, save),
       child: Stack(children: [
         CircleAvatar(radius: size / 2, backgroundColor: AppTheme.tile(c),
           backgroundImage: avatarProvider(b64),
@@ -134,6 +148,20 @@ class SettingsScreen extends StatelessWidget {
           child: const Icon(Icons.photo_camera_rounded, color: Colors.white, size: 13))),
       ]),
     );
+
+  Future<void> _avatarMenu(BuildContext c, String? b64, ValueChanged<String?> save) async {
+    final r = await showModalBottomSheet<String>(context: c, builder: (_) => SafeArea(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        ListTile(leading: const Icon(Icons.photo_library_outlined), title: const Text('Bild wählen'),
+            onTap: () => Navigator.pop(c, 'pick')),
+        if (b64 != null) ListTile(leading: const Icon(Icons.delete_outline_rounded), title: const Text('Bild entfernen'),
+            onTap: () => Navigator.pop(c, 'remove')),
+        ListTile(leading: const Icon(Icons.close_rounded), title: const Text('Abbrechen'),
+            onTap: () => Navigator.pop(c)),
+      ])));
+    if (r == 'pick') { final img = await pickImageBase64(); if (img != null) { save(img); _toast(c, 'Bild gespeichert'); } }
+    else if (r == 'remove') { save(null); _toast(c, 'Bild entfernt'); }
+  }
 
   Widget _voiceCard(BuildContext c, AppState st, String voice, String label, String? b64, ValueChanged<String?> save) {
     final cs = Theme.of(c).colorScheme;

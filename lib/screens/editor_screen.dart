@@ -7,6 +7,7 @@ import '../models/models.dart';
 import '../data/default_data.dart';
 import '../theme/app_theme.dart';
 import '../widgets/activity_icon.dart';
+import '../util/format.dart';
 
 // Kompakte, selbstschließende Meldung
 void _snack(BuildContext c, String m, {bool undo = false, VoidCallback? onUndo}) {
@@ -36,20 +37,28 @@ class EditorScreen extends StatelessWidget {
   }
 
   Future<void> _setDuration(BuildContext c, AppState st, int i) async {
-    final mins = await showModalBottomSheet<int>(context: c,
-      backgroundColor: Theme.of(c).colorScheme.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => Padding(padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Wie lange dauert es?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
-              color: Theme.of(c).colorScheme.onSurface)),
-          const SizedBox(height: 16),
+    final mins = await showDialog<int>(context: c, builder: (dc) {
+      final ctrl = TextEditingController();
+      return AlertDialog(
+        title: const Text('Wie lange dauert es?'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Wrap(spacing: 10, runSpacing: 10, children: [
             for (final v in [5, 10, 15, 20, 30, 45, 60, 90, 120])
-              ActionChip(label: Text('$v Min'), onPressed: () => Navigator.pop(c, v)),
+              ActionChip(label: Text(fmtDuration(v)), onPressed: () => Navigator.pop(dc, v)),
           ]),
-        ])),
-    );
+          const SizedBox(height: 14),
+          Row(children: [
+            Expanded(child: TextField(controller: ctrl, keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Eigene Minuten', isDense: true, border: OutlineInputBorder()))),
+            const SizedBox(width: 8),
+            FilledButton(onPressed: () {
+              final v = int.tryParse(ctrl.text.trim());
+              if (v != null && v >= 2 && v <= 600) Navigator.pop(dc, v);
+            }, child: const Text('OK')),
+          ]),
+        ]),
+      );
+    });
     if (mins == null) return;
     final ok = st.setDuration(i, mins);
     _snack(c, ok ? 'Dauer gespeichert' : 'Überschneidet sich mit dem nächsten Eintrag');
@@ -132,7 +141,7 @@ class EditorScreen extends StatelessWidget {
         Row(children: [
           _chip(c, Icons.schedule_rounded, '${_hhmm(a.startMinutes)} Uhr', () => _setTime(c, st, i), cs),
           const SizedBox(width: 10),
-          _chip(c, Icons.timelapse_rounded, '${a.durationMin} Min', () => _setDuration(c, st, i), cs),
+          _chip(c, Icons.timelapse_rounded, fmtDuration(a.durationMin), () => _setDuration(c, st, i), cs),
         ]),
         if (isCustom) Padding(padding: const EdgeInsets.only(top: 8),
           child: Row(children: [

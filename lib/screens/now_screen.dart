@@ -5,13 +5,7 @@ import '../theme/app_theme.dart';
 import '../widgets/activity_icon.dart';
 import '../services/image_util.dart';
 import '../models/models.dart';
-
-String fmtUntil(int m) {
-  if (m <= 0) return 'jetzt';
-  if (m < 60) return 'In $m Min.';
-  final h = m ~/ 60, r = m % 60;
-  return r == 0 ? 'In $h Std.' : 'In $h Std. $r Min.';
-}
+import '../util/format.dart';
 
 class NowScreen extends StatelessWidget {
   const NowScreen({super.key});
@@ -74,7 +68,7 @@ class NowScreen extends StatelessWidget {
         if (st.isActive) ...[
           _Bar(progress: st.progress, track: cs.surfaceContainerHighest, fill: hc ? cs.primary : kAccent),
           const SizedBox(height: 8),
-          Align(alignment: Alignment.centerRight, child: Text('noch ${st.remainingMin} Min.',
+          Align(alignment: Alignment.centerRight, child: Text('noch ${fmtDuration(st.remainingMin)}',
               style: TextStyle(fontSize: 14, color: cs.onSurface.withOpacity(.55)))),
           const SizedBox(height: 14),
         ] else ...[
@@ -124,7 +118,7 @@ class NowScreen extends StatelessWidget {
           Text(n.label, maxLines: 1, overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: cs.onSurface)),
           if (st.settings.showClock)
-            Text('${n.timeLabel} Uhr · ${n.durationMin} Min.',
+            Text('${n.timeLabel} Uhr · ${fmtDuration(n.durationMin)}',
                 style: TextStyle(fontSize: 12.5, color: cs.onSurface.withOpacity(.55))),
         ])),
         SizedBox(width: 30, height: 30, child: CircularProgressIndicator(
