@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -7,15 +8,52 @@ import '../data/default_data.dart';
 import '../theme/app_theme.dart';
 import '../widgets/activity_icon.dart';
 
-void _snack(BuildContext c, String m, {SnackBarAction? action}) {
+// Kompakte, selbstschließende Meldung
+void _snack(BuildContext c, String m, {bool undo = false, VoidCallback? onUndo}) {
   ScaffoldMessenger.of(c)
     ..clearSnackBars()
-    ..showSnackBar(SnackBar(content: Text(m), behavior: SnackBarBehavior.floating,
-        duration: const Duration(milliseconds: 1600), action: action));
+    ..showSnackBar(SnackBar(
+      content: Text(m, style: const TextStyle(fontSize: 13.5)),
+      behavior: SnackBarBehavior.floating, width: 300,
+      duration: Duration(milliseconds: undo ? 3000 : 1300),
+      action: undo ? SnackBarAction(label: 'Rückgängig', onPressed: onUndo ?? () {}) : null,
+    ));
 }
+
+String _hhmm(int min) => '${min ~/ 60}:${(min % 60).toString().padLeft(2, '0')}';
 
 class EditorScreen extends StatelessWidget {
   const EditorScreen({super.key});
+
+  Future<void> _setTime(BuildContext c, AppState st, int i) async {
+    final a = st.plan[i];
+    final t = await showTimePicker(context: c,
+        initialTime: TimeOfDay(hour: a.startMinutes ~/ 60, minute: a.startMinutes % 60),
+        helpText: 'Startzeit wählen');
+    if (t == null) return;
+    final ok = st.setStart(i, t.hour * 60 + t.minute);
+    _snack(c, ok ? 'Zeit gespeichert' : 'Diese Zeit ist schon belegt');
+  }
+
+  Future<void> _setDuration(BuildContext c, AppState st, int i) async {
+    final mins = await showModalBottomSheet<int>(context: c,
+      backgroundColor: Theme.of(c).colorScheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => Padding(padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Wie lange dauert es?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
+              color: Theme.of(c).colorScheme.onSurface)),
+          const SizedBox(height: 16),
+          Wrap(spacing: 10, runSpacing: 10, children: [
+            for (final v in [5, 10, 15, 20, 30, 45, 60, 90, 120])
+              ActionChip(label: Text('$v Min'), onPressed: () => Navigator.pop(c, v)),
+          ]),
+        ])),
+    );
+    if (mins == null) return;
+    final ok = st.setDuration(i, mins);
+    _snack(c, ok ? 'Dauer gespeichert' : 'Überschneidet sich mit dem nächsten Eintrag');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,24 +62,11 @@ class EditorScreen extends StatelessWidget {
     final ink = cs.onSurface;
     return SafeArea(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        Padding(padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Tag zusammenstellen', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: ink)),
-            const SizedBox(height: 12),
             Row(children: [
-              Icon(Icons.schedule_rounded, size: 20, color: ink.withOpacity(.7)),
-              const SizedBox(width: 8),
-              Text('Start:', style: TextStyle(color: ink.withOpacity(.7), fontWeight: FontWeight.w600)),
-              const SizedBox(width: 8),
-              ActionChip(
-                label: Text(st.plan.isEmpty ? '–' : '${st.plan.first.timeLabel} Uhr'),
-                onPressed: () async {
-                  final t = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 7, minute: 0));
-                  if (t != null) { st.setDayStart(t.hour * 60 + t.minute); _snack(context, 'Startzeit gespeichert'); }
-                },
-              ),
-              const Spacer(),
+              Expanded(child: Text('Tag zusammenstellen',
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: ink))),
               Text('${st.plan.length} Schritte', style: TextStyle(color: ink.withOpacity(.5), fontSize: 13)),
             ]),
             const SizedBox(height: 12),
@@ -55,120 +80,95 @@ class EditorScreen extends StatelessWidget {
             )),
             const SizedBox(height: 14),
             Text('Dein Ablauf', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: ink)),
-            Text('Am  ⠿  ziehen zum Sortieren · mit − / + die Dauer ändern',
+            Text('Tippe Uhrzeit oder Dauer an, um sie genau einzustellen.',
                 style: TextStyle(fontSize: 12.5, color: ink.withOpacity(.55))),
             const SizedBox(height: 8),
-          ]),
-        ),
+          ])),
         Expanded(
           child: st.plan.isEmpty
               ? Center(child: Text('Noch keine Schritte.\nTippe „Baustein hinzufügen".',
                   textAlign: TextAlign.center, style: TextStyle(color: ink.withOpacity(.5))))
-              : ReorderableListView.builder(
+              : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  buildDefaultDragHandles: false,
                   itemCount: st.plan.length,
-                  onReorder: (o, n) { st.reorder(o, n); _snack(context, 'Reihenfolge geändert'); },
-                  itemBuilder: (c, i) => _EditRow(key: ValueKey(st.plan[i].id), st: st, index: i),
+                  itemBuilder: (c, i) => _row(c, st, i, cs),
                 ),
         ),
       ]),
     );
   }
 
-  void _showAddSheet(BuildContext context, AppState st) {
-    showModalBottomSheet(
-      context: context, isScrollControlled: true, useSafeArea: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (_) => _AddSheet(st: st),
-    );
-  }
-}
-
-class _EditRow extends StatelessWidget {
-  final AppState st; final int index;
-  const _EditRow({super.key, required this.st, required this.index});
-
-  Future<void> _pick(BuildContext c, bool icon) async {
+  Future<void> _pickFile(BuildContext c, AppState st, int i, bool icon) async {
     final res = await FilePicker.platform.pickFiles(
       type: FileType.custom, allowedExtensions: icon ? ['svg'] : ['mp3', 'wav', 'm4a']);
     final p = res?.files.single.path;
     if (p == null) return;
-    icon ? st.setIcon(index, p) : st.setAudio(index, p);
+    icon ? st.setIcon(i, p) : st.setAudio(i, p);
     _snack(c, icon ? 'Icon zugewiesen' : 'Sprachdatei zugewiesen');
   }
 
-  void _delete(BuildContext c) {
-    final removed = st.plan[index].copy();
-    final at = index;
-    st.removeAt(index);
-    _snack(c, '„${removed.label}" entfernt',
-      action: SnackBarAction(label: 'Rückgängig', onPressed: () => st.insertActivity(at, removed)));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+  Widget _row(BuildContext c, AppState st, int i, ColorScheme cs) {
     final ink = cs.onSurface;
-    final a = st.plan[index];
+    final a = st.plan[i];
     final isCustom = a.key == null;
     return Container(
-      key: ValueKey('row_${a.id}'),
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(18),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(.05), blurRadius: 10)]),
+      margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(.05), blurRadius: 12)]),
       child: Column(children: [
         Row(children: [
-          ReorderableDragStartListener(index: index,
-            child: Padding(padding: const EdgeInsets.only(right: 2),
-              child: Icon(Icons.drag_indicator_rounded, size: 22, color: ink.withOpacity(.35)))),
-          IconTile(activity: a, tileSize: 46, iconSize: 30, radius: 13),
-          const SizedBox(width: 10),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(a.label, maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: ink)),
-            Text('${a.timeLabel} Uhr', style: TextStyle(color: ink.withOpacity(.55), fontSize: 12)),
-          ])),
-          // Dauer-Regler mit klarer Beschriftung
-          Container(
-            decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(14)),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              _mini(context, Icons.remove_rounded, () => st.changeDuration(index, -5)),
-              SizedBox(width: 50, child: Text('${a.durationMin} Min', textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5, color: ink))),
-              _mini(context, Icons.add_rounded, () => st.changeDuration(index, 5)),
-            ]),
-          ),
-          const SizedBox(width: 6),
-          InkWell(onTap: () => _delete(context), borderRadius: BorderRadius.circular(12),
-            child: Container(width: 38, height: 38,
+          IconTile(activity: a, tileSize: 50, iconSize: 34, radius: 14),
+          const SizedBox(width: 12),
+          Expanded(child: Text(a.label, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17, color: ink))),
+          InkWell(onTap: () { final r = a.copy(); st.removeAt(i);
+              _snack(c, '„${a.label}" entfernt', undo: true, onUndo: () => st.insertActivity(r)); },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(width: 40, height: 40,
               decoration: BoxDecoration(color: const Color(0x22EC6A53), borderRadius: BorderRadius.circular(12)),
-              child: const Icon(Icons.delete_outline_rounded, size: 20, color: kAccent))),
+              child: const Icon(Icons.delete_outline_rounded, size: 22, color: kAccent))),
         ]),
-        if (isCustom) Padding(
-          padding: const EdgeInsets.only(top: 8),
+        const SizedBox(height: 10),
+        Row(children: [
+          _chip(c, Icons.schedule_rounded, '${_hhmm(a.startMinutes)} Uhr', () => _setTime(c, st, i), cs),
+          const SizedBox(width: 10),
+          _chip(c, Icons.timelapse_rounded, '${a.durationMin} Min', () => _setDuration(c, st, i), cs),
+        ]),
+        if (isCustom) Padding(padding: const EdgeInsets.only(top: 8),
           child: Row(children: [
-            Expanded(child: OutlinedButton.icon(onPressed: () => _pick(context, true),
+            Expanded(child: OutlinedButton.icon(onPressed: () => _pickFile(c, st, i, true),
               icon: const Icon(Icons.image_outlined, size: 18),
               label: Text(a.iconPath != null ? 'Icon ✓' : 'Eigenes Icon'))),
             const SizedBox(width: 8),
-            Expanded(child: OutlinedButton.icon(onPressed: () => _pick(context, false),
+            Expanded(child: OutlinedButton.icon(onPressed: () => _pickFile(c, st, i, false),
               icon: const Icon(Icons.graphic_eq_rounded, size: 18),
               label: Text(a.audioPath != null ? 'Audio ✓' : 'Eigene Stimme'))),
-          ]),
-        ),
+          ])),
       ]),
     );
   }
 
-  Widget _mini(BuildContext c, IconData ic, VoidCallback on) => InkWell(
-    onTap: on, borderRadius: BorderRadius.circular(12),
-    child: SizedBox(width: 34, height: 38, child: Icon(ic, size: 20, color: Theme.of(c).colorScheme.onSurface)));
+  Widget _chip(BuildContext c, IconData ic, String label, VoidCallback on, ColorScheme cs) => InkWell(
+    onTap: on, borderRadius: BorderRadius.circular(14),
+    child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(14)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(ic, size: 18, color: cs.onSurface.withOpacity(.7)),
+        const SizedBox(width: 8),
+        Text(label, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: cs.onSurface)),
+        const SizedBox(width: 4),
+        Icon(Icons.expand_more_rounded, size: 18, color: cs.onSurface.withOpacity(.5)),
+      ])),
+  );
+
+  void _showAddSheet(BuildContext context, AppState st) {
+    showModalBottomSheet(context: context, isScrollControlled: true, useSafeArea: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      builder: (_) => _AddSheet(st: st));
+  }
 }
 
-// ---------------- Hinzufügen-Sheet mit Suche ----------------
 class _AddSheet extends StatefulWidget {
   final AppState st;
   const _AddSheet({required this.st});
@@ -179,6 +179,13 @@ class _AddSheet extends StatefulWidget {
 class _AddSheetState extends State<_AddSheet> {
   String _query = '';
   String? _cat;
+  String? _confirm;
+  String? _flashId;
+  Timer? _ct;
+  Timer? _ft;
+
+  @override
+  void dispose() { _ct?.cancel(); _ft?.cancel(); super.dispose(); }
 
   List<Activity> get _items {
     final all = moduleLibrary();
@@ -192,13 +199,15 @@ class _AddSheetState extends State<_AddSheet> {
 
   void _add(Activity m) {
     widget.st.addFromTemplate(m);
-    _snack(context, '„${m.label}" hinzugefügt');
+    setState(() { _confirm = m.label; _flashId = m.id; });
+    _ct?.cancel(); _ct = Timer(const Duration(milliseconds: 1500), () { if (mounted) setState(() => _confirm = null); });
+    _ft?.cancel(); _ft = Timer(const Duration(milliseconds: 550), () { if (mounted) setState(() => _flashId = null); });
   }
 
   Future<void> _custom() async {
     final nameC = TextEditingController();
     final textC = TextEditingController();
-    await showDialog(context: context, builder: (c) => AlertDialog(
+    final added = await showDialog<bool>(context: context, builder: (c) => AlertDialog(
       title: const Text('Eigener Eintrag'),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         TextField(controller: nameC, autofocus: true,
@@ -207,15 +216,14 @@ class _AddSheetState extends State<_AddSheet> {
         TextField(controller: textC, decoration: const InputDecoration(labelText: 'Gesprochener Text (optional)')),
       ]),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(c), child: const Text('Abbrechen')),
+        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Abbrechen')),
         FilledButton(onPressed: () {
-          final ok = nameC.text.trim().isNotEmpty;
-          if (ok) widget.st.addCustom(nameC.text, spoken: textC.text);
-          Navigator.pop(c);
-          if (ok) _snack(context, 'Eintrag hinzugefügt');
+          if (nameC.text.trim().isNotEmpty) widget.st.addCustom(nameC.text, spoken: textC.text);
+          Navigator.pop(c, nameC.text.trim().isNotEmpty);
         }, child: const Text('Hinzufügen')),
       ],
     ));
+    if (added == true && mounted) setState(() { _confirm = nameC.text.trim(); });
   }
 
   @override
@@ -231,22 +239,21 @@ class _AddSheetState extends State<_AddSheet> {
           const SizedBox(height: 10),
           Container(width: 44, height: 5, decoration: BoxDecoration(
               color: cs.onSurface.withOpacity(.2), borderRadius: BorderRadius.circular(3))),
-          Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          Padding(padding: const EdgeInsets.fromLTRB(16, 10, 8, 6),
             child: Row(children: [
               Expanded(child: Text('Baustein wählen',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: cs.onSurface))),
               TextButton.icon(onPressed: _custom, icon: const Icon(Icons.add_circle_outline, size: 20),
                 label: const Text('Eigener')),
+              IconButton(onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded), tooltip: 'Schließen'),
             ])),
           Padding(padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextField(
-              onChanged: (v) => setState(() => _query = v),
-              decoration: InputDecoration(
-                hintText: 'Suchen … (z. B. Frühstück)', prefixIcon: const Icon(Icons.search_rounded),
-                filled: true, fillColor: cs.surfaceContainerHighest,
+            child: TextField(onChanged: (v) => setState(() => _query = v),
+              decoration: InputDecoration(hintText: 'Suchen … (z. B. Frühstück)',
+                prefixIcon: const Icon(Icons.search_rounded), filled: true, fillColor: cs.surfaceContainerHighest,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                contentPadding: const EdgeInsets.symmetric(vertical: 4)),
-            )),
+                contentPadding: const EdgeInsets.symmetric(vertical: 4)))),
           if (_query.trim().isEmpty) SizedBox(height: 46,
             child: ListView(scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), children: [
@@ -257,25 +264,37 @@ class _AddSheetState extends State<_AddSheet> {
               ])),
           const SizedBox(height: 4),
           Expanded(child: GridView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.86),
             itemCount: items.length,
             itemBuilder: (c, i) {
               final m = items[i];
+              final flash = _flashId == m.id;
               return InkWell(onTap: () => _add(m), borderRadius: BorderRadius.circular(18),
-                child: Container(
-                  decoration: BoxDecoration(color: AppTheme.tile(context), borderRadius: BorderRadius.circular(18)),
-                  padding: const EdgeInsets.all(8),
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Expanded(child: Center(child: ActivityIcon(activity: m, size: 46))),
-                    const SizedBox(height: 4),
-                    Text(m.label, maxLines: 2, textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600, height: 1.05)),
-                  ]),
-                ));
+                child: Stack(children: [
+                  Container(
+                    decoration: BoxDecoration(color: AppTheme.tile(context), borderRadius: BorderRadius.circular(18)),
+                    padding: const EdgeInsets.all(8),
+                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Expanded(child: Center(child: ActivityIcon(activity: m, size: 46))),
+                      const SizedBox(height: 4),
+                      Text(m.label, maxLines: 2, textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600, height: 1.05)),
+                    ])),
+                  AnimatedOpacity(opacity: flash ? 1 : 0, duration: const Duration(milliseconds: 150),
+                    child: Container(
+                      decoration: BoxDecoration(color: Colors.black.withOpacity(.35), borderRadius: BorderRadius.circular(18)),
+                      child: const Center(child: Icon(Icons.check_circle_rounded, color: Colors.white, size: 44)))),
+                ]));
             },
           )),
+          // sichtbare Bestätigung (über dem Raster, schließt sich selbst)
+          AnimatedContainer(duration: const Duration(milliseconds: 200),
+            height: _confirm == null ? 0 : 46,
+            color: cs.primary,
+            child: _confirm == null ? null : Center(child: Text('✓  „$_confirm" hinzugefügt',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)))),
         ]),
       ),
     );

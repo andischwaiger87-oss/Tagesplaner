@@ -2,7 +2,7 @@
 
 Stand: 12. Juni 2026 · Ziel 100% = fertig, getestet, fehlerfrei, Go-Live
 
-## Gesamtfortschritt: ~58 %
+## Gesamtfortschritt: ~62 %
 
 | Bereich | Status | % |
 |---|---|---|
@@ -58,3 +58,14 @@ flutter run -d chrome
 - Einstellungen-Überschriften jetzt dunkel/lesbar.
 - Profilbild (oben neben dem Namen) + Avatar-Bilder für Frau/Mann hochladbar & gespeichert.
 - Englische Stimme entfernt (Standard: deutsche Frauenstimme).
+
+
+## Zeitmodell & UX (13.6.)
+- Echte, frei einstellbare Uhrzeiten je Schritt (Uhr-Auswahl) + Dauer-Auswahl;
+  KEINE automatische Verkettung mehr. Überschneidungen werden verhindert und klar gemeldet.
+- „Jetzt" ist exakt an der Systemzeit ausgerichtet: zeigt die laufende Aufgabe,
+  sonst die nächste; nach dem letzten Schritt „Für heute geschafft".
+- Restzeit in Echtzeit: „Als Nächstes"-Liste mit Countdown-Ringen („In 25 Min.").
+- Sinnvoller Standard-Tagesplan (ganztags, realistische Reihenfolge) – lädt einmalig neu.
+- Hinzufügen-Fenster: sichtbare Bestätigung (✓-Häkchen + Leiste), X zum Schließen.
+- Meldungen kompakt und schließen sich selbst.

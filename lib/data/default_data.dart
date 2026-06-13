@@ -88,9 +88,34 @@ List<ModuleCategory> moduleCategories() => [
 
 List<Activity> moduleLibrary() => [for (final c in moduleCategories()) ...c.items];
 
+Activity _mk(Map<String, Activity> t, String k, int start, int dur) {
+  final base = t[k] ?? _t(k, k, 'Jetzt ist es Zeit f\u00fcr $k.', dur);
+  final c = base.copy();
+  c.id = 's_${k}_$start';
+  c.startMinutes = start;
+  c.durationMin = dur;
+  return c;
+}
+
 List<Activity> sampleDay() {
-  final t = {for (final a in moduleLibrary()) a.key: a};
-  List<Activity> pick(List<String> keys) =>
-      [for (final k in keys) (t[k] ?? _t(k, k, 'Jetzt: $k', 10)).copy()..id = 'a$k'];
-  return pick(['aufstehen', 'duschen', 'zaehne_putzen', 'anziehen', 'fruehstueck', 'rucksack_packen', 'bus_nehmen']);
+  final t = {for (final a in moduleLibrary()) a.key!: a};
+  return [
+    _mk(t, 'aufstehen', 420, 10),
+    _mk(t, 'duschen', 435, 15),
+    _mk(t, 'zaehne_putzen', 455, 5),
+    _mk(t, 'anziehen', 465, 10),
+    _mk(t, 'fruehstueck', 480, 20),
+    _mk(t, 'bus_nehmen', 510, 20),
+    _mk(t, 'arbeit', 540, 180),
+    _mk(t, 'mittagessen', 720, 30),
+    _mk(t, 'pause', 750, 15),
+    _mk(t, 'arbeit', 780, 180),
+    _mk(t, 'bus_nehmen', 960, 20),
+    _mk(t, 'spazieren', 990, 30),
+    _mk(t, 'abendessen', 1050, 30),
+    _mk(t, 'fernsehen', 1110, 60),
+    _mk(t, 'abendroutine', 1200, 15),
+    _mk(t, 'zaehne_putzen', 1230, 5),
+    _mk(t, 'schlafengehen', 1260, 10),
+  ];
 }

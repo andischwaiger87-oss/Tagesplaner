@@ -8,7 +8,7 @@ class StorageService {
   Future<List<Activity>> loadPlan() async {
     try {
       final p = await SharedPreferences.getInstance();
-      final raw = p.getString('plan');
+      final raw = p.getString('plan_v2');
       if (raw == null) return sampleDay();
       final list = (jsonDecode(raw) as List).map((e) => Activity.fromJson(e)).toList();
       return list.isEmpty ? sampleDay() : list;
@@ -19,7 +19,7 @@ class StorageService {
 
   Future<void> savePlan(List<Activity> plan) async {
     final p = await SharedPreferences.getInstance();
-    await p.setString('plan', jsonEncode(plan.map((e) => e.toJson()).toList()));
+    await p.setString('plan_v2', jsonEncode(plan.map((e) => e.toJson()).toList()));
   }
 
   Future<AppSettings> loadSettings() async {
