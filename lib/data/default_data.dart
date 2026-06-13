@@ -177,3 +177,19 @@ List<Activity> sampleDay() {
     _mk(t, 'schlafengehen', 1260, 10),
   ];
 }
+
+List<Activity> sampleWeekend() {
+  final t = {for (final a in moduleLibrary()) a.key!: a};
+  return [
+    _mk(t, 'aufstehen', 540, 15),
+    _mk(t, 'fruehstueck', 570, 30),
+    _mk(t, 'spazieren', 630, 45),
+    _mk(t, 'mittagessen', 750, 45),
+    _mk(t, 'ausruhen', 840, 60),
+    _mk(t, 'besuch', 930, 90),
+    _mk(t, 'abendessen', 1080, 45),
+    _mk(t, 'fernsehen', 1140, 90),
+    _mk(t, 'zaehne_putzen', 1260, 5),
+    _mk(t, 'schlafengehen', 1290, 10),
+  ];
+}

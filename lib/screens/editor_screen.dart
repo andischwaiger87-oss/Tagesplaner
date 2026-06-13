@@ -22,6 +22,8 @@ void _snack(BuildContext c, String m, {bool undo = false, VoidCallback? onUndo})
 }
 
 String _hhmm(int min) => '${min ~/ 60}:${(min % 60).toString().padLeft(2, '0')}';
+String _wdShort(int d) => const ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'][d - 1];
+String _wdLong(int d) => const ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'][d - 1];
 
 class EditorScreen extends StatelessWidget {
   const EditorScreen({super.key});
@@ -79,6 +81,19 @@ class EditorScreen extends StatelessWidget {
               Text('${st.plan.length} Schritte', style: TextStyle(color: ink.withOpacity(.5), fontSize: 13)),
             ]),
             const SizedBox(height: 12),
+            SizedBox(height: 40, child: ListView(scrollDirection: Axis.horizontal, children: [
+              for (int d = 1; d <= 7; d++) Padding(padding: const EdgeInsets.only(right: 6),
+                child: ChoiceChip(label: Text(_wdShort(d)), selected: st.editingDay == d,
+                  onSelected: (_) => st.setEditingDay(d))),
+            ])),
+            const SizedBox(height: 6),
+            Row(children: [
+              Text('Plan für ${_wdLong(st.editingDay)}', style: TextStyle(fontWeight: FontWeight.w600, color: ink)),
+              const Spacer(),
+              TextButton.icon(onPressed: () => _copyMenu(context, st),
+                icon: const Icon(Icons.copy_all_rounded, size: 18), label: const Text('Kopieren')),
+            ]),
+            const SizedBox(height: 8),
             SizedBox(width: double.infinity, child: FilledButton.icon(
               style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -169,6 +184,20 @@ class EditorScreen extends StatelessWidget {
         Icon(Icons.expand_more_rounded, size: 18, color: cs.onSurface.withOpacity(.5)),
       ])),
   );
+
+  void _copyMenu(BuildContext c, AppState st) {
+    showModalBottomSheet(context: c, builder: (_) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
+      const Padding(padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+        child: Align(alignment: Alignment.centerLeft, child: Text('Diesen Plan kopieren auf …',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)))),
+      ListTile(leading: const Icon(Icons.work_outline_rounded), title: const Text('Alle Werktage (Mo–Fr)'),
+        onTap: () { st.copyEditTo([1, 2, 3, 4, 5]); Navigator.pop(c); _snack(c, 'Auf Werktage kopiert'); }),
+      ListTile(leading: const Icon(Icons.weekend_outlined), title: const Text('Wochenende (Sa–So)'),
+        onTap: () { st.copyEditTo([6, 7]); Navigator.pop(c); _snack(c, 'Auf Wochenende kopiert'); }),
+      ListTile(leading: const Icon(Icons.calendar_view_week_rounded), title: const Text('Alle Tage'),
+        onTap: () { st.copyEditTo([1, 2, 3, 4, 5, 6, 7]); Navigator.pop(c); _snack(c, 'Auf alle Tage kopiert'); }),
+    ])));
+  }
 
   void _showAddSheet(BuildContext context, AppState st) {
     showModalBottomSheet(context: context, isScrollControlled: true, useSafeArea: true,

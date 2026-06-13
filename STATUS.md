@@ -2,7 +2,7 @@
 
 Stand: 12. Juni 2026 · Ziel 100% = fertig, getestet, fehlerfrei, Go-Live
 
-## Gesamtfortschritt: ~66 %
+## Gesamtfortschritt: ~70 %
 
 | Bereich | Status | % |
 |---|---|---|
@@ -79,3 +79,11 @@ flutter run -d chrome
 - 29 neue Bausteine (jetzt 87) + Excel-Produktionsliste erweitert (inkl. Hilfe-Audios).
 - Hilfe-/Einführungs-Wizard (6 Schritte, Stepper) – jederzeit in den Einstellungen,
   mit Vorlesen (Audio intro1–intro6_de_f/_de_m, sonst Gerätestimme).
+
+
+## Wochenpläne & Kalender (13.6.)
+- Eigener Plan je Wochentag (Mo–So). Standard: Mo–Fr Arbeitstag, Sa–So entspannt.
+- „Jetzt" zeigt automatisch den heutigen Tag; oben rechts das Datum – Tippen öffnet den Kalender.
+- „Tagesplan"-Tab neu mit Umschaltung Tag / Woche / Monat (klarer Monatskalender mit Punkten).
+- „Bearbeiten": Wochentag oben wählbar + „Kopieren" (auf Werktage / Wochenende / alle Tage).
+- Haupt-UI („Jetzt") bleibt bewusst einfach.

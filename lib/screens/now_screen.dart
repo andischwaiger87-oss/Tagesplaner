@@ -7,6 +7,12 @@ import '../services/image_util.dart';
 import '../models/models.dart';
 import '../util/format.dart';
 
+String _todayLabel() {
+  final n = DateTime.now();
+  const wd = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+  return '${wd[n.weekday - 1]}, ${n.day}.${n.month}.';
+}
+
 class NowScreen extends StatelessWidget {
   const NowScreen({super.key});
   @override
@@ -32,6 +38,20 @@ class NowScreen extends StatelessWidget {
             Text(done ? 'Für heute' : (st.isActive ? 'Das ist jetzt dran' : 'Gleich dran'),
                 style: TextStyle(fontSize: 16, color: cs.onSurface.withOpacity(.6))),
           ])),
+          InkWell(
+            onTap: () => st.goTab(1),
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(14),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(.05), blurRadius: 10)]),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.calendar_month_rounded, size: 18, color: cs.primary),
+                const SizedBox(width: 6),
+                Text(_todayLabel(), style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: cs.onSurface)),
+              ]),
+            ),
+          ),
         ]),
         const SizedBox(height: 20),
 

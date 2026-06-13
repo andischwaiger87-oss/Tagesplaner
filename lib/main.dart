@@ -55,7 +55,6 @@ class RootScaffold extends StatefulWidget {
 }
 
 class _RootScaffoldState extends State<RootScaffold> {
-  int _tab = 0;
   @override
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
@@ -65,10 +64,10 @@ class _RootScaffoldState extends State<RootScaffold> {
     const screens = [NowScreen(), PlanScreen(), EditorScreen(), SettingsScreen()];
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: IndexedStack(index: _tab, children: screens),
+      body: IndexedStack(index: st.navTab, children: screens),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
+        selectedIndex: st.navTab,
+        onDestinationSelected: st.goTab,
         destinations: const [
           NavigationDestination(icon: Icon(Icons.schedule_rounded), label: 'Jetzt'),
           NavigationDestination(icon: Icon(Icons.view_agenda_outlined), label: 'Tagesplan'),
