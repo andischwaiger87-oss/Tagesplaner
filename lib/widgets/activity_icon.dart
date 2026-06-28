@@ -40,7 +40,11 @@ class IconTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Semantics(
+      label: activity.label,
+      image: true,
+      excludeSemantics: true,
+      child: Container(
       width: tileSize,
       height: tileSize,
       decoration: BoxDecoration(
@@ -49,6 +53,6 @@ class IconTile extends StatelessWidget {
       ),
       alignment: Alignment.center,
       child: ActivityIcon(activity: activity, size: iconSize),
-    );
+    ));
   }
 }

@@ -72,7 +72,9 @@ class NowScreen extends StatelessWidget {
 
   Widget _bigCard(BuildContext context, AppState st, Activity a, ColorScheme cs, AppSettings s) {
     final hc = s.highContrast;
-    return Container(
+    final sem = '${st.isActive ? "Jetzt" : "Als Nächstes"}: ${a.label}, um ${a.timeLabel} Uhr'
+        '${st.isActive ? ", noch ${st.remainingMin} Minuten" : ", ${fmtUntil(st.minutesUntil(a))}"}';
+    return Semantics(container: true, label: sem, child: Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 26, 20, 22),
       decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(32),
@@ -86,7 +88,7 @@ class NowScreen extends StatelessWidget {
           child: Text('um ${a.timeLabel} Uhr', style: TextStyle(fontSize: 16, color: cs.onSurface.withOpacity(.55)))),
         const SizedBox(height: 18),
         if (st.isActive) ...[
-          _Bar(progress: st.progress, track: cs.surfaceContainerHighest, fill: hc ? cs.primary : kAccent),
+          ExcludeSemantics(child: _Bar(progress: st.progress, track: cs.surfaceContainerHighest, fill: hc ? cs.primary : kAccent)),
           const SizedBox(height: 8),
           Align(alignment: Alignment.centerRight, child: Text('noch ${fmtDuration(st.remainingMin)}',
               style: TextStyle(fontSize: 14, color: cs.onSurface.withOpacity(.55)))),
@@ -108,7 +110,7 @@ class NowScreen extends StatelessWidget {
           ]),
         )),
       ]),
-    );
+    ));
   }
 
   Widget _doneCard(ColorScheme cs) => Container(
@@ -141,9 +143,9 @@ class NowScreen extends StatelessWidget {
             Text('${n.timeLabel} Uhr · ${fmtDuration(n.durationMin)}',
                 style: TextStyle(fontSize: 12.5, color: cs.onSurface.withOpacity(.55))),
         ])),
-        SizedBox(width: 30, height: 30, child: CircularProgressIndicator(
+        ExcludeSemantics(child: SizedBox(width: 30, height: 30, child: CircularProgressIndicator(
           value: ring, strokeWidth: 3, backgroundColor: cs.surfaceContainerHighest,
-          valueColor: AlwaysStoppedAnimation(cs.primary))),
+          valueColor: AlwaysStoppedAnimation(cs.primary)))),
         const SizedBox(width: 8),
         SizedBox(width: 64, child: Text(fmtUntil(mins), textAlign: TextAlign.right,
             style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: cs.onSurface.withOpacity(.7)))),

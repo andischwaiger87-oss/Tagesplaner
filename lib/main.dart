@@ -6,6 +6,7 @@ import 'screens/now_screen.dart';
 import 'screens/plan_screen.dart';
 import 'screens/editor_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/help_wizard.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,11 +56,19 @@ class RootScaffold extends StatefulWidget {
 }
 
 class _RootScaffoldState extends State<RootScaffold> {
+  bool _onbHandled = false;
   @override
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
     if (st.loading) {
       return const Scaffold(backgroundColor: Colors.transparent, body: Center(child: CircularProgressIndicator()));
+    }
+    if (!_onbHandled && !st.settings.onboardingDone) {
+      _onbHandled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        st.updateSettings((x) => x.onboardingDone = true);
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpWizard()));
+      });
     }
     const screens = [NowScreen(), PlanScreen(), EditorScreen(), SettingsScreen()];
     return Scaffold(

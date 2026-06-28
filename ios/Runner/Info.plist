@@ -45,5 +45,13 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>CFBundleDisplayName</key>
+	<string>Tagesbegleiter</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Damit du ein Profilbild oder eigene Bilder für Bausteine auswählen kannst.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Damit du ein eigenes Foto für einen Baustein aufnehmen kannst.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Damit du bei Bedarf eine eigene Sprachaufnahme hinzufügen kannst.</string>
 </dict>
 </plist>

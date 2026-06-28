@@ -2,7 +2,7 @@
 
 Stand: 12. Juni 2026 · Ziel 100% = fertig, getestet, fehlerfrei, Go-Live
 
-## Gesamtfortschritt: ~70 %
+## Gesamtfortschritt: ~75 %
 
 | Bereich | Status | % |
 |---|---|---|
@@ -87,3 +87,12 @@ flutter run -d chrome
 - „Tagesplan"-Tab neu mit Umschaltung Tag / Woche / Monat (klarer Monatskalender mit Punkten).
 - „Bearbeiten": Wochentag oben wählbar + „Kopieren" (auf Werktage / Wochenende / alle Tage).
 - Haupt-UI („Jetzt") bleibt bewusst einfach.
+
+
+## A11y, Onboarding, iOS-Vorbereitung (13.6.)
+- Barrierefreiheit: Icons mit Screenreader-Beschriftung, „Jetzt"-Karte als zusammenhängende
+  Vorlese-Einheit, dekorative Fortschrittselemente ausgeblendet.
+- Automatisches Onboarding: Hilfe-Wizard öffnet sich beim allerersten Start einmalig.
+- Einstellungen: Über/Impressum (dezent), Datenschutz-Hinweis, Standardplan-Reset.
+- iOS vorbereitet: Bundle-ID at.mosaikdesign.tagesbegleiter, Berechtigungstexte,
+  codemagic.yaml (TestFlight + Android). Apple-Developer-Konto noch nötig.

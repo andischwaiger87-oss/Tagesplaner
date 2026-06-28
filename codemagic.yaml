@@ -1,0 +1,48 @@
+# Codemagic CI/CD – baut Tagesbegleiter für iOS (TestFlight) und Android.
+# Vorbereitung in Codemagic:
+#   1. App per GitHub verbinden (Repo Tagesplaner, Root = app/).
+#   2. Unter "Teams/Integrations" das Apple-Developer-Konto (App Store Connect API Key) verbinden.
+#   3. Bundle-ID: at.mosaikdesign.tagesbegleiter   (in App Store Connect als App anlegen).
+#   4. Workflow "ios-testflight" starten -> Build landet automatisch in TestFlight.
+
+workflows:
+  ios-testflight:
+    name: iOS – TestFlight
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: at.mosaikdesign.tagesbegleiter
+    integrations:
+      app_store_connect: AppStoreConnectKey   # in Codemagic unter diesem Namen hinterlegen
+    scripts:
+      - name: Flutter packages
+        script: flutter pub get
+      - name: Set up signing
+        script: xcode-project use-profiles
+      - name: Build IPA
+        script: flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+
+  android-apk:
+    name: Android – APK & AAB
+    instance_type: linux_x2
+    environment:
+      flutter: stable
+    scripts:
+      - name: Flutter packages
+        script: flutter pub get
+      - name: Build APK (universell)
+        script: flutter build apk --release
+      - name: Build App-Bundle
+        script: flutter build appbundle --release
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
+      - build/app/outputs/bundle/release/app-release.aab

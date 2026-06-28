@@ -43,3 +43,18 @@ per TestFlight aufs iPhone.
 Die Web-Version läuft schon über Cloudflare Pages (`tagesplaner-aut.pages.dev`) und
 funktioniert auf jedem Gerät im Browser – nur die Hintergrund-Erinnerungen/Vibration
 sind dort eingeschränkt (dafür ist die installierte App da).
+
+## iOS via Codemagic – fertig vorbereitet
+Im Projekt liegt jetzt `codemagic.yaml` mit zwei Workflows:
+- **ios-testflight** – baut die signierte iOS-App und lädt sie zu TestFlight.
+- **android-apk** – baut APK + App-Bundle (Alternative zu GitHub Actions).
+
+Schritte (einmalig):
+1. Auf codemagic.io mit GitHub anmelden, Repo **Tagesplaner** verbinden (Root: `app/`).
+2. Apple-Developer-Konto verbinden: App-Store-Connect-API-Key anlegen und in Codemagic
+   unter dem Namen **AppStoreConnectKey** hinterlegen.
+3. In App Store Connect die App mit Bundle-ID **at.mosaikdesign.tagesbegleiter** anlegen.
+4. Workflow **„iOS – TestFlight"** starten → die App erscheint nach dem Build in TestFlight.
+
+Damit bekommst du die App ohne eigenen Mac aufs iPhone – nötig ist nur das
+Apple-Developer-Programm (99 USD/Jahr).
