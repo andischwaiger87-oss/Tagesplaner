@@ -12,13 +12,28 @@ const List<Color> kSeeds = [
 const Color kAccent = Color(0xFFEC6A53); // kräftiges Korall für die Hauptaktion
 const Color kInk = Color(0xFF132019);
 
+class _NoTransitionsBuilder extends PageTransitionsBuilder {
+  const _NoTransitionsBuilder();
+  @override
+  Widget buildTransitions<T>(PageRoute<T> route, BuildContext context,
+      Animation<double> animation, Animation<double> secondaryAnimation, Widget child) => child;
+}
+
+const PageTransitionsTheme _noTransitions = PageTransitionsTheme(builders: {
+  TargetPlatform.android: _NoTransitionsBuilder(),
+  TargetPlatform.iOS: _NoTransitionsBuilder(),
+  TargetPlatform.macOS: _NoTransitionsBuilder(),
+  TargetPlatform.windows: _NoTransitionsBuilder(),
+  TargetPlatform.linux: _NoTransitionsBuilder(),
+});
+
 class AppTheme {
   static Color tile(BuildContext c) {
     final cs = Theme.of(c).colorScheme;
     return cs.brightness == Brightness.dark ? const Color(0xFF26302E) : cs.primary;
   }
 
-  static ThemeData build({required int themeIndex, required bool highContrast}) {
+  static ThemeData build({required int themeIndex, required bool highContrast, bool reduceMotion = false}) {
     final seed = kSeeds[themeIndex.clamp(0, kSeeds.length - 1)];
     final dark = highContrast;
     final scheme = ColorScheme.fromSeed(
@@ -38,7 +53,8 @@ class AppTheme {
       scaffoldBackgroundColor: dark ? bg : Colors.transparent,
       textTheme: GoogleFonts.lexendTextTheme(baseTextTheme)
           .apply(bodyColor: text, displayColor: text),
-      splashFactory: InkSparkle.splashFactory,
+      splashFactory: reduceMotion ? NoSplash.splashFactory : InkSparkle.splashFactory,
+      pageTransitionsTheme: reduceMotion ? _noTransitions : null,
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: scheme.surface,
         indicatorColor: seed.withOpacity(dark ? .30 : .16),

@@ -25,7 +25,8 @@ class TagesbegleiterApp extends StatelessWidget {
     return MaterialApp(
       title: 'Tagesbegleiter',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.build(themeIndex: s.themeIndex, highContrast: s.highContrast),
+      theme: AppTheme.build(themeIndex: s.themeIndex, highContrast: s.highContrast, reduceMotion: s.reduceMotion),
+      themeAnimationDuration: s.reduceMotion ? Duration.zero : kThemeAnimationDuration,
       builder: (context, child) {
         final deco = s.highContrast
             ? const BoxDecoration(color: Color(0xFF0F1413))
@@ -39,7 +40,7 @@ class TagesbegleiterApp extends StatelessWidget {
         return Container(
           decoration: deco,
           child: MediaQuery(
-            data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(s.fontScale)),
+            data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(s.fontScale), disableAnimations: s.reduceMotion),
             child: child!,
           ),
         );

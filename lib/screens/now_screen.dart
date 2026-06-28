@@ -183,7 +183,7 @@ class _Bar extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(builder: (c, cons) => Container(
     height: 24, decoration: BoxDecoration(color: track, borderRadius: BorderRadius.circular(14)),
     child: Align(alignment: Alignment.centerLeft, child: AnimatedContainer(
-      duration: const Duration(milliseconds: 500), width: cons.maxWidth * progress.clamp(0, 1),
+      duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 500), width: cons.maxWidth * progress.clamp(0, 1),
       decoration: BoxDecoration(color: fill, borderRadius: BorderRadius.circular(14)))),
   ));
 }

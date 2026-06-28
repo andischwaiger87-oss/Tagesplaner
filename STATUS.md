@@ -2,7 +2,7 @@
 
 Stand: 12. Juni 2026 · Ziel 100% = fertig, getestet, fehlerfrei, Go-Live
 
-## Gesamtfortschritt: ~77 %
+## Gesamtfortschritt: ~78 %
 
 | Bereich | Status | % |
 |---|---|---|
@@ -102,3 +102,10 @@ flutter run -d chrome
 - Schritte abhaken: erledigte Aufgaben pro Tag markieren (Kreis im Tagesplan, Button auf „Jetzt").
 - Fortschrittsanzeige „x/y erledigt" auf „Jetzt" und im Tagesplan (heute).
 - Erledigtes wird gespeichert und setzt sich automatisch um Mitternacht zurück.
+
+
+## reduceMotion + Tests (13.6.)
+- „Animationen reduzieren" greift jetzt wirklich: keine Seitenübergänge, kein Splash,
+  Theme-/Balken-Animationen aus, MediaQuery.disableAnimations gesetzt.
+- Erste automatisierte Tests (test/widget_test.dart): Zeit-Formatierung + JSON-Roundtrips.
+  Ausführen mit: flutter test
