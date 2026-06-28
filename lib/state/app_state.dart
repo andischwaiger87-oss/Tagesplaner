@@ -7,6 +7,7 @@ import '../services/storage_service.dart';
 import '../services/media_service.dart';
 import '../services/notification_service.dart';
 import '../services/asset_catalog.dart';
+import '../data/default_data.dart';
 
 enum DayState { active, upcoming, done }
 
@@ -175,6 +176,12 @@ class AppState extends ChangeNotifier {
       if (d == editingDay) continue;
       week[d] = [for (final a in src) a.copy()..id = '${a.id}_$d'];
     }
+    _storage.saveWeek(week); _recompute(announce: false); notifyListeners(); _reschedule();
+  }
+
+  void resetWeek() {
+    week = {for (int d = 1; d <= 7; d++) d: (d <= 5 ? sampleDay() : sampleWeekend())};
+    editingDay = DateTime.now().weekday;
     _storage.saveWeek(week); _recompute(announce: false); notifyListeners(); _reschedule();
   }
 

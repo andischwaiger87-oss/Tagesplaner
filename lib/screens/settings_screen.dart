@@ -5,6 +5,8 @@ import '../theme/app_theme.dart';
 import '../services/image_util.dart';
 import 'help_wizard.dart';
 
+const String appVersion = '0.1 (Beta)';
+
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -108,6 +110,48 @@ class SettingsScreen extends StatelessWidget {
             trailing: Icon(Icons.chevron_right_rounded, color: ink.withOpacity(.5)),
             onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpWizard())),
           ),
+        ]),
+
+        _header('Über die App', ink),
+        _card(cs, [
+          ListTile(contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.info_outline_rounded, color: cs.primary),
+            title: Text('Version & Projekt', style: TextStyle(fontWeight: FontWeight.w600, color: ink)),
+            subtitle: Text('Tagesbegleiter $appVersion · gemeinnütziges Open-Source-Projekt',
+                style: TextStyle(fontSize: 12.5, color: ink.withOpacity(.55)))),
+          const Divider(height: 8),
+          ListTile(contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.shield_outlined, color: cs.primary),
+            title: Text('Datenschutz', style: TextStyle(fontWeight: FontWeight.w600, color: ink)),
+            trailing: Icon(Icons.chevron_right_rounded, color: ink.withOpacity(.5)),
+            onTap: () => showDialog(context: context, builder: (_) => AlertDialog(
+              title: const Text('Datenschutz'),
+              content: const Text('Tagesbegleiter speichert alle Pläne und Einstellungen ausschließlich lokal auf deinem Gerät. '
+                  'Es gibt keine Konten, keine Werbung und kein Tracking. Standortdaten werden nicht erhoben.'),
+              actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))]))),
+          ListTile(contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.business_outlined, color: cs.primary),
+            title: Text('Impressum', style: TextStyle(fontWeight: FontWeight.w600, color: ink)),
+            trailing: Icon(Icons.chevron_right_rounded, color: ink.withOpacity(.5)),
+            onTap: () => showDialog(context: context, builder: (_) => AlertDialog(
+              title: const Text('Impressum'),
+              content: const Text('Tagesbegleiter ist ein ehrenamtliches, gemeinnütziges Open-Source-Projekt.\n\n'
+                  'Umsetzung: mosaik-design.at\nAndreas Schwaiger\nhallo@mosaik-design.at'),
+              actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))]))),
+          const Divider(height: 8),
+          ListTile(contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.restart_alt_rounded, color: cs.primary),
+            title: Text('Standardplan wiederherstellen', style: TextStyle(fontWeight: FontWeight.w600, color: ink)),
+            subtitle: Text('Setzt alle Wochentage auf den Standard zurück.',
+                style: TextStyle(fontSize: 12.5, color: ink.withOpacity(.55))),
+            onTap: () => showDialog(context: context, builder: (_) => AlertDialog(
+              title: const Text('Wirklich zurücksetzen?'),
+              content: const Text('Alle Wochentage werden auf den Standardplan gesetzt. Deine bisherigen Pläne gehen verloren.'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Abbrechen')),
+                FilledButton(onPressed: () { st.resetWeek(); Navigator.pop(context); _toast(context, 'Standardplan wiederhergestellt'); },
+                    child: const Text('Zurücksetzen')),
+              ]))),
         ]),
       ]),
     );
