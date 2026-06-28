@@ -53,6 +53,19 @@ class NowScreen extends StatelessWidget {
             ),
           ),
         ]),
+        if (st.totalToday > 0) Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Row(children: [
+            Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: st.totalToday == 0 ? 0 : st.doneCount / st.totalToday,
+                minHeight: 8, backgroundColor: cs.surfaceContainerHighest,
+                valueColor: AlwaysStoppedAnimation(cs.primary)))),
+            const SizedBox(width: 10),
+            Text('${st.doneCount}/${st.totalToday} erledigt',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurface.withOpacity(.7))),
+          ]),
+        ),
         const SizedBox(height: 20),
 
         if (done)
@@ -109,6 +122,15 @@ class NowScreen extends StatelessWidget {
             Text('Vorlesen', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
           ]),
         )),
+        const SizedBox(height: 10),
+        TextButton.icon(
+          onPressed: () => st.toggleDone(a.id),
+          icon: Icon(st.isDone(a.id) ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+              color: st.isDone(a.id) ? cs.primary : cs.onSurface.withOpacity(.5)),
+          label: Text(st.isDone(a.id) ? 'Erledigt' : 'Als erledigt markieren',
+              style: TextStyle(fontWeight: FontWeight.w600,
+                  color: st.isDone(a.id) ? cs.primary : cs.onSurface.withOpacity(.7))),
+        ),
       ]),
     ));
   }

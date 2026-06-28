@@ -44,4 +44,22 @@ class StorageService {
     final p = await SharedPreferences.getInstance();
     await p.setString('settings', jsonEncode(s.toJson()));
   }
+
+  Future<String> loadDoneDate() async {
+    final p = await SharedPreferences.getInstance();
+    return p.getString('done_date') ?? '';
+  }
+
+  Future<Set<String>> loadDoneIds() async {
+    final p = await SharedPreferences.getInstance();
+    final raw = p.getString('done_ids');
+    if (raw == null) return <String>{};
+    return Set<String>.from(jsonDecode(raw) as List);
+  }
+
+  Future<void> saveDone(String date, Set<String> ids) async {
+    final p = await SharedPreferences.getInstance();
+    await p.setString('done_date', date);
+    await p.setString('done_ids', jsonEncode(ids.toList()));
+  }
 }

@@ -59,11 +59,23 @@ class _PlanScreenState extends State<PlanScreen> {
             onSelected: (_) => setState(() => _day = d))),
       ])),
       const SizedBox(height: 8),
+      if (isToday && list.isNotEmpty) Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(children: [
+          Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(value: st.totalToday == 0 ? 0 : st.doneCount / st.totalToday,
+              minHeight: 8, backgroundColor: cs.surfaceContainerHighest,
+              valueColor: AlwaysStoppedAnimation(cs.primary)))),
+          const SizedBox(width: 10),
+          Text('${st.doneCount}/${st.totalToday} erledigt',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurface.withOpacity(.7))),
+        ]),
+      ),
       if (list.isEmpty) Padding(padding: const EdgeInsets.all(24),
         child: Center(child: Text('Für ${_wdLong[_day - 1]} ist noch nichts geplant.',
             style: TextStyle(color: cs.onSurface.withOpacity(.5))))),
       for (int i = 0; i < list.length; i++)
-        _planRow(cs, list[i], highlight: isToday && i == st.currentIndex),
+        _planRow(cs, st, list[i], highlight: isToday && i == st.currentIndex, interactive: isToday),
       const SizedBox(height: 8),
       Center(child: TextButton.icon(
         onPressed: () { st.setEditingDay(_day); st.goTab(2); },
@@ -71,25 +83,34 @@ class _PlanScreenState extends State<PlanScreen> {
     ]);
   }
 
-  Widget _planRow(ColorScheme cs, Activity a, {bool highlight = false}) => Container(
-    margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(20),
-      border: highlight ? Border.all(color: kAccent, width: 3) : null,
-      boxShadow: [BoxShadow(color: Colors.black.withOpacity(.05), blurRadius: 12)]),
-    child: Row(children: [
-      IconTile(activity: a, tileSize: 52, iconSize: 34, radius: 14),
-      const SizedBox(width: 14),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(a.label, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: cs.onSurface)),
-        Text('${a.timeLabel} Uhr · ${fmtDuration(a.durationMin)}',
-            style: TextStyle(fontSize: 12.5, color: cs.onSurface.withOpacity(.55))),
-      ])),
-      if (highlight) Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(color: kAccent, borderRadius: BorderRadius.circular(999)),
-        child: const Text('JETZT', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800))),
-    ]),
-  );
+  Widget _planRow(ColorScheme cs, AppState st, Activity a, {bool highlight = false, bool interactive = false}) {
+    final done = interactive && st.isDone(a.id);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(20),
+        border: highlight ? Border.all(color: kAccent, width: 3) : null,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(.05), blurRadius: 12)]),
+      child: Row(children: [
+        if (interactive) Padding(padding: const EdgeInsets.only(right: 8),
+          child: InkWell(onTap: () => st.toggleDone(a.id), borderRadius: BorderRadius.circular(20),
+            child: Icon(done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                size: 30, color: done ? cs.primary : cs.onSurface.withOpacity(.4)))),
+        IconTile(activity: a, tileSize: 52, iconSize: 34, radius: 14),
+        const SizedBox(width: 14),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(a.label, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: cs.onSurface,
+                  decoration: done ? TextDecoration.lineThrough : null,
+                  decorationColor: cs.onSurface.withOpacity(.4))),
+          Text('${a.timeLabel} Uhr · ${fmtDuration(a.durationMin)}',
+              style: TextStyle(fontSize: 12.5, color: cs.onSurface.withOpacity(.55))),
+        ])),
+        if (highlight && !done) Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(color: kAccent, borderRadius: BorderRadius.circular(999)),
+          child: const Text('JETZT', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800))),
+      ]),
+    );
+  }
 
   // -------- WOCHE --------
   Widget _woche(AppState st, ColorScheme cs) {

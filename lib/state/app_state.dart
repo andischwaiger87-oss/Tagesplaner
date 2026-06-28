@@ -21,7 +21,9 @@ class AppState extends ChangeNotifier {
   bool loading = true;
 
   int editingDay = DateTime.now().weekday; // welcher Tag im Editor bearbeitet wird
-  int navTab = 0;                          // aktiver Tab (zentral gesteuert)
+  int navTab = 0;
+  Set<String> _done = {};
+  String _doneDate = '';                          // aktiver Tab (zentral gesteuert)
 
   int currentIndex = 0;
   bool isActive = false;
@@ -35,6 +37,9 @@ class AppState extends ChangeNotifier {
     await AssetCatalog.load();
     week = await _storage.loadWeek();
     settings = await _storage.loadSettings();
+    _doneDate = await _storage.loadDoneDate();
+    _done = await _storage.loadDoneIds();
+    _ensureDoneDate();
     for (final l in week.values) { l.sort((a, b) => a.startMinutes.compareTo(b.startMinutes)); }
     loading = false;
     _recompute(announce: false);
@@ -60,7 +65,15 @@ class AppState extends ChangeNotifier {
     return n.hour * 60 + n.minute + n.second / 60.0;
   }
 
+  String _todayKey() { final n = DateTime.now(); return '${n.year}-${n.month}-${n.day}'; }
+  void _ensureDoneDate() { final k = _todayKey(); if (_doneDate != k) { _doneDate = k; _done = {}; _storage.saveDone(_doneDate, _done); } }
+  bool isDone(String id) => _done.contains(id);
+  int get doneCount { _ensureDoneDate(); return _today.where((a) => _done.contains(a.id)).length; }
+  int get totalToday => _today.length;
+  void toggleDone(String id) { _ensureDoneDate(); if (_done.contains(id)) { _done.remove(id); } else { _done.add(id); } _storage.saveDone(_doneDate, _done); notifyListeners(); }
+
   void _recompute({bool announce = true}) {
+    _ensureDoneDate();
     final p = _today;
     if (p.isEmpty) { dayState = DayState.done; isActive = false; notifyListeners(); return; }
     final now = _nowMin;

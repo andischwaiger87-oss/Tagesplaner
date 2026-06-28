@@ -2,7 +2,7 @@
 
 Stand: 12. Juni 2026 · Ziel 100% = fertig, getestet, fehlerfrei, Go-Live
 
-## Gesamtfortschritt: ~75 %
+## Gesamtfortschritt: ~77 %
 
 | Bereich | Status | % |
 |---|---|---|
@@ -96,3 +96,9 @@ flutter run -d chrome
 - Einstellungen: Über/Impressum (dezent), Datenschutz-Hinweis, Standardplan-Reset.
 - iOS vorbereitet: Bundle-ID at.mosaikdesign.tagesbegleiter, Berechtigungstexte,
   codemagic.yaml (TestFlight + Android). Apple-Developer-Konto noch nötig.
+
+
+## Tagesfortschritt (13.6.)
+- Schritte abhaken: erledigte Aufgaben pro Tag markieren (Kreis im Tagesplan, Button auf „Jetzt").
+- Fortschrittsanzeige „x/y erledigt" auf „Jetzt" und im Tagesplan (heute).
+- Erledigtes wird gespeichert und setzt sich automatisch um Mitternacht zurück.
