@@ -236,6 +236,11 @@ class AppState extends ChangeNotifier {
     _storage.saveWeek(week); _recompute(announce: false); notifyListeners(); _reschedule();
   }
 
+  Future<void> requestReminderPermissions() async { try { await _notif.requestPermissions(); } catch (_) {} }
+  Future<void> sendTestReminder() async {
+    try { await _notif.showNow('Test-Erinnerung', 'Super! Genau so meldet sich die App.'); } catch (_) {}
+  }
+
   void updateSettings(void Function(AppSettings) f) {
     f(settings); _storage.saveSettings(settings); notifyListeners();
   }

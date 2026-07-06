@@ -4,6 +4,7 @@ import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../services/image_util.dart';
 import 'help_wizard.dart';
+import 'notif_setup.dart';
 
 const String appVersion = '0.1 (Beta)';
 
@@ -66,6 +67,18 @@ class SettingsScreen extends StatelessWidget {
             Expanded(child: _voiceCard(context, st, 'm', 'Mann', s.avatarM,
                 (b) => st.updateSettings((x) => x.avatarM = b))),
           ]),
+        ]),
+
+        _header('Erinnerungen', ink),
+        _card(cs, [
+          ListTile(contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.notifications_active_rounded, color: cs.primary),
+            title: Text('Erinnerungen einrichten', style: TextStyle(fontWeight: FontWeight.w600, color: ink)),
+            subtitle: Text('In 3 einfachen Schritten – damit die App sich pünktlich meldet.',
+                style: TextStyle(fontSize: 12.5, color: ink.withOpacity(.55))),
+            trailing: Icon(Icons.chevron_right_rounded, color: ink.withOpacity(.5)),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotifSetupScreen())),
+          ),
         ]),
 
         _header('Darstellung', ink),
