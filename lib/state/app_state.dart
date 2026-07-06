@@ -179,6 +179,23 @@ class AppState extends ChangeNotifier {
     list[i].durationMin = minutes; _afterEdit(); return true;
   }
 
+  // Per Drag & Drop sortieren: Reihenfolge ändern und Uhrzeiten neu verketten
+  void reorderChain(int oldIndex, int newIndex) {
+    final list = week[editingDay]!;
+    if (oldIndex < 0 || oldIndex >= list.length) return;
+    if (newIndex > oldIndex) newIndex -= 1;
+    final item = list.removeAt(oldIndex);
+    list.insert(newIndex.clamp(0, list.length), item);
+    for (int i = 1; i < list.length; i++) {
+      list[i].startMinutes = list[i - 1].startMinutes + list[i - 1].durationMin;
+    }
+    try { media.stop(); } catch (_) {}
+    _storage.saveWeek(week);
+    _recompute(announce: false);
+    notifyListeners();
+    _reschedule();
+  }
+
   void setIcon(int i, String path) { week[editingDay]![i].iconPath = path; _storage.saveWeek(week); notifyListeners(); }
   void setAudio(int i, String path) { week[editingDay]![i].audioPath = path; _storage.saveWeek(week); notifyListeners(); }
 
