@@ -59,11 +59,11 @@ class NowScreen extends StatelessWidget {
             Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(
                 value: st.totalToday == 0 ? 0 : st.doneCount / st.totalToday,
-                minHeight: 8, backgroundColor: cs.surfaceContainerHighest,
+                minHeight: 10, backgroundColor: Colors.white,
                 valueColor: AlwaysStoppedAnimation(cs.primary)))),
             const SizedBox(width: 10),
             Text('${st.doneCount}/${st.totalToday} erledigt',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurface.withOpacity(.7))),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: cs.onSurface)),
           ]),
         ),
         const SizedBox(height: 20),

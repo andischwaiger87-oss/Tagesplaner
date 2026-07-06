@@ -77,7 +77,7 @@ class _RootScaffoldState extends State<RootScaffold> {
       body: IndexedStack(index: st.navTab, children: screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: st.navTab,
-        onDestinationSelected: st.goTab,
+        onDestinationSelected: (i) { ScaffoldMessenger.of(context).clearSnackBars(); st.goTab(i); },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.schedule_rounded), label: 'Jetzt'),
           NavigationDestination(icon: Icon(Icons.view_agenda_outlined), label: 'Tagesplan'),

@@ -33,19 +33,39 @@ class _PlanScreenState extends State<PlanScreen> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Mein Plan', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: ink)),
             const SizedBox(height: 12),
-            SegmentedButton<int>(
-              segments: const [
-                ButtonSegment(value: 0, label: Text('Tag'), icon: Icon(Icons.today_rounded)),
-                ButtonSegment(value: 1, label: Text('Woche'), icon: Icon(Icons.view_week_rounded)),
-                ButtonSegment(value: 2, label: Text('Monat'), icon: Icon(Icons.calendar_month_rounded)),
-              ],
-              selected: {_view},
-              onSelectionChanged: (s) => setState(() => _view = s.first),
+            Container(
+              decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(.05), blurRadius: 10)]),
+              padding: const EdgeInsets.all(4),
+              child: Row(children: [
+                _segBtn(cs, 'Tag', Icons.today_rounded, 0),
+                _segBtn(cs, 'Woche', Icons.view_week_rounded, 1),
+                _segBtn(cs, 'Monat', Icons.calendar_month_rounded, 2),
+              ]),
             ),
           ])),
         Expanded(child: _view == 0 ? _tag(st, cs) : _view == 1 ? _woche(st, cs) : _monat(st, cs)),
       ]),
     );
+  }
+
+  Widget _segBtn(ColorScheme cs, String label, IconData ic, int v) {
+    final on = _view == v;
+    return Expanded(child: InkWell(
+      onTap: () => setState(() => _view = v),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(color: on ? cs.primary : Colors.transparent, borderRadius: BorderRadius.circular(12)),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(ic, size: 18, color: on ? Colors.white : cs.onSurface.withOpacity(.6)),
+          const SizedBox(width: 6),
+          Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14,
+                color: on ? Colors.white : cs.onSurface.withOpacity(.7)))),
+        ]),
+      ),
+    ));
   }
 
   // -------- TAG --------
@@ -64,11 +84,11 @@ class _PlanScreenState extends State<PlanScreen> {
         child: Row(children: [
           Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(value: st.totalToday == 0 ? 0 : st.doneCount / st.totalToday,
-              minHeight: 8, backgroundColor: cs.surfaceContainerHighest,
+              minHeight: 10, backgroundColor: Colors.white,
               valueColor: AlwaysStoppedAnimation(cs.primary)))),
           const SizedBox(width: 10),
           Text('${st.doneCount}/${st.totalToday} erledigt',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurface.withOpacity(.7))),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: cs.onSurface)),
         ]),
       ),
       if (list.isEmpty) Padding(padding: const EdgeInsets.all(24),

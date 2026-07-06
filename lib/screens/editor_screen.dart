@@ -9,14 +9,15 @@ import '../theme/app_theme.dart';
 import '../widgets/activity_icon.dart';
 import '../util/format.dart';
 
-// Kompakte, selbstschließende Meldung
+// Kompakte, selbstschließende Meldung (einzeilig, schließt sich zuverlässig)
 void _snack(BuildContext c, String m, {bool undo = false, VoidCallback? onUndo}) {
   ScaffoldMessenger.of(c)
     ..clearSnackBars()
     ..showSnackBar(SnackBar(
-      content: Text(m, style: const TextStyle(fontSize: 13.5)),
-      behavior: SnackBarBehavior.floating, width: 300,
-      duration: Duration(milliseconds: undo ? 3000 : 1300),
+      content: Text(m, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13.5)),
+      behavior: SnackBarBehavior.floating,
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      duration: Duration(milliseconds: undo ? 2500 : 1200),
       action: undo ? SnackBarAction(label: 'Rückgängig', onPressed: onUndo ?? () {}) : null,
     ));
 }
@@ -71,53 +72,46 @@ class EditorScreen extends StatelessWidget {
     final st = context.watch<AppState>();
     final cs = Theme.of(context).colorScheme;
     final ink = cs.onSurface;
+    // Der gesamte Bereich scrollt (Kopf inkl. „Dein Ablauf" scrollt mit weg),
+    // damit die Bearbeitung der Einträge die volle Höhe nutzen kann.
     return SafeArea(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Expanded(child: Text('Tag zusammenstellen',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: ink))),
-              Text('${st.plan.length} Schritte', style: TextStyle(color: ink.withOpacity(.5), fontSize: 13)),
-            ]),
-            const SizedBox(height: 12),
-            SizedBox(height: 40, child: ListView(scrollDirection: Axis.horizontal, children: [
-              for (int d = 1; d <= 7; d++) Padding(padding: const EdgeInsets.only(right: 6),
-                child: ChoiceChip(label: Text(_wdShort(d)), selected: st.editingDay == d,
-                  onSelected: (_) => st.setEditingDay(d))),
-            ])),
-            const SizedBox(height: 6),
-            Row(children: [
-              Text('Plan für ${_wdLong(st.editingDay)}', style: TextStyle(fontWeight: FontWeight.w600, color: ink)),
-              const Spacer(),
-              TextButton.icon(onPressed: () => _copyMenu(context, st),
-                icon: const Icon(Icons.copy_all_rounded, size: 18), label: const Text('Kopieren')),
-            ]),
-            const SizedBox(height: 8),
-            SizedBox(width: double.infinity, child: FilledButton.icon(
-              style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
-              onPressed: () => _showAddSheet(context, st),
-              icon: const Icon(Icons.add_rounded, size: 24),
-              label: const Text('Baustein hinzufügen', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-            )),
-            const SizedBox(height: 14),
-            Text('Dein Ablauf', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: ink)),
-            Text('Tippe Uhrzeit oder Dauer an, um sie genau einzustellen.',
-                style: TextStyle(fontSize: 12.5, color: ink.withOpacity(.55))),
-            const SizedBox(height: 8),
-          ])),
-        Expanded(
-          child: st.plan.isEmpty
-              ? Center(child: Text('Noch keine Schritte.\nTippe „Baustein hinzufügen".',
-                  textAlign: TextAlign.center, style: TextStyle(color: ink.withOpacity(.5))))
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  itemCount: st.plan.length,
-                  itemBuilder: (c, i) => _row(c, st, i, cs),
-                ),
-        ),
+      child: ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 24), children: [
+        Text('Tag zusammenstellen',
+            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: ink)),
+        const SizedBox(height: 12),
+        SizedBox(height: 40, child: ListView(scrollDirection: Axis.horizontal, children: [
+          for (int d = 1; d <= 7; d++) Padding(padding: const EdgeInsets.only(right: 6),
+            child: ChoiceChip(label: Text(_wdShort(d)), selected: st.editingDay == d,
+              onSelected: (_) => st.setEditingDay(d))),
+        ])),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(child: Text('Plan für ${_wdLong(st.editingDay)} · ${st.plan.length} Schritte',
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontWeight: FontWeight.w600, color: ink))),
+          TextButton.icon(onPressed: () => _copyMenu(context, st),
+            icon: const Icon(Icons.copy_all_rounded, size: 18), label: const Text('Kopieren')),
+        ]),
+        const SizedBox(height: 8),
+        SizedBox(width: double.infinity, child: FilledButton.icon(
+          style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
+          onPressed: () => _showAddSheet(context, st),
+          icon: const Icon(Icons.add_rounded, size: 24),
+          label: const Text('Baustein hinzufügen', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+        )),
+        const SizedBox(height: 14),
+        Text('Dein Ablauf', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: ink)),
+        Text('Tippe Uhrzeit oder Dauer an, um sie genau einzustellen.',
+            style: TextStyle(fontSize: 12.5, color: ink.withOpacity(.55))),
+        const SizedBox(height: 10),
+        if (st.plan.isEmpty)
+          Padding(padding: const EdgeInsets.all(24),
+            child: Center(child: Text('Noch keine Schritte.\nTippe „Baustein hinzufügen".',
+                textAlign: TextAlign.center, style: TextStyle(color: ink.withOpacity(.5)))))
+        else
+          for (int i = 0; i < st.plan.length; i++) _row(context, st, i, cs),
       ]),
     );
   }

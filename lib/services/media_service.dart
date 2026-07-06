@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -33,7 +34,8 @@ class MediaService {
         return;
       } catch (_) {}
     }
-    // 3) Rückfall: geräteeigene Stimme
+    // 3) Rückfall: geräteeigene Stimme (im Web bewusst KEINE Roboterstimme)
+    if (kIsWeb) return;
     if (!_ttsReady) await _initTts(s.voice, s.volume);
     await _tts.setVolume(s.volume);
     await _tts.setPitch(s.voice == 'm' ? 0.9 : 1.05);
