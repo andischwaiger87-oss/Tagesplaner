@@ -35,7 +35,9 @@ class EditorScreen extends StatelessWidget {
     final a = st.plan[i];
     final t = await showTimePicker(context: c,
         initialTime: TimeOfDay(hour: a.startMinutes ~/ 60, minute: a.startMinutes % 60),
-        helpText: 'Startzeit wählen');
+        helpText: 'Startzeit wählen',
+        builder: (ctx, child) => MediaQuery(
+            data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: true), child: child!));
     if (t == null) return;
     final ok = st.setStart(i, t.hour * 60 + t.minute);
     _snack(c, ok ? 'Zeit gespeichert' : 'Belegt oder zu spät für die Dauer');

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
 import 'state/app_state.dart';
@@ -25,6 +26,13 @@ class TagesbegleiterApp extends StatelessWidget {
     return MaterialApp(
       title: 'Tagesbegleiter',
       debugShowCheckedModeBanner: false,
+      locale: const Locale('de'),
+      supportedLocales: const [Locale('de')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: AppTheme.build(themeIndex: s.themeIndex, highContrast: s.highContrast, reduceMotion: s.reduceMotion),
       themeAnimationDuration: s.reduceMotion ? Duration.zero : kThemeAnimationDuration,
       builder: (context, child) {

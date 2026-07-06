@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   provider: ^6.1.2          # State-Management
   flutter_svg: ^2.0.10      # eigene handgezeichnete SVG-Icons
   audioplayers: ^6.1.0      # ElevenLabs-Sprachdateien abspielen
