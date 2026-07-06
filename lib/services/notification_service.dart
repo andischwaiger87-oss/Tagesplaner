@@ -3,8 +3,10 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 import '../models/models.dart';
 
-// "Aufpoppen": plant zu jeder Startzeit eine exakte, täglich wiederkehrende
-// lokale Benachrichtigung – funktioniert auch bei geschlossener App, offline.
+// "Aufpoppen": plant für die nächsten Tage exakte lokale Benachrichtigungen –
+// jeweils mit dem RICHTIGEN Wochentagsplan. Funktioniert auch bei geschlossener
+// App und offline (native Android/iOS). Wird bei jedem App-Start und jeder
+// Planänderung neu aufgebaut.
 class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   bool _ready = false;
@@ -42,38 +44,41 @@ class NotificationService {
     await _plugin.show(0, title, body, _details);
   }
 
-  // Für jeden Schritt eine täglich wiederkehrende Benachrichtigung zur Startzeit.
-  Future<void> scheduleAll(List<Activity> plan) async {
+  /// Plant die nächsten 7 Tage vor – je Datum mit dem passenden Wochentagsplan.
+  /// Deckelt die Anzahl (iOS erlaubt max. 64 offene Benachrichtigungen).
+  Future<void> scheduleWeek(Map<int, List<Activity>> week) async {
     await init();
     await _plugin.cancelAll();
-    for (int i = 0; i < plan.length; i++) {
-      final a = plan[i];
-      final when = _nextInstanceOf(a.startMinutes ~/ 60, a.startMinutes % 60);
-      try {
-        await _plugin.zonedSchedule(100 + i, 'Jetzt: ${a.label}',
-            'Tippe, um die App zu öffnen.', when, _details,
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-            uiLocalNotificationDateInterpretation:
-                UILocalNotificationDateInterpretation.absoluteTime,
-            matchDateTimeComponents: DateTimeComponents.time);
-      } catch (_) {
+    final now = tz.TZDateTime.now(tz.local);
+    int id = 1000;
+    int count = 0;
+    const maxNotifs = 60;
+    for (int offset = 0; offset < 7 && count < maxNotifs; offset++) {
+      final date = now.add(Duration(days: offset));
+      final plan = week[date.weekday] ?? const <Activity>[];
+      for (final a in plan) {
+        if (count >= maxNotifs) break;
+        final when = tz.TZDateTime(tz.local, date.year, date.month, date.day,
+            a.startMinutes ~/ 60, a.startMinutes % 60);
+        if (!when.isAfter(now)) continue;
+        final nid = id++;
         try {
-          await _plugin.zonedSchedule(100 + i, 'Jetzt: ${a.label}',
-              'Tippe, um die App zu öffnen.', when, _details,
-              androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-              uiLocalNotificationDateInterpretation:
-                  UILocalNotificationDateInterpretation.absoluteTime,
-              matchDateTimeComponents: DateTimeComponents.time);
-        } catch (_) {}
+          await _plugin.zonedSchedule(nid, 'Jetzt: ${a.label}', 'Tippe, um die App zu öffnen.',
+              when, _details,
+              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+              uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime);
+          count++;
+        } catch (_) {
+          try {
+            await _plugin.zonedSchedule(nid, 'Jetzt: ${a.label}', 'Tippe, um die App zu öffnen.',
+                when, _details,
+                androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+                uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime);
+            count++;
+          } catch (_) {}
+        }
       }
     }
-  }
-
-  tz.TZDateTime _nextInstanceOf(int hour, int minute) {
-    final now = tz.TZDateTime.now(tz.local);
-    var d = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
-    if (d.isBefore(now)) d = d.add(const Duration(days: 1));
-    return d;
   }
 
   Future<void> cancelAll() async { await _plugin.cancelAll(); }

@@ -66,7 +66,13 @@ class AppState extends ChangeNotifier {
   }
 
   String _todayKey() { final n = DateTime.now(); return '${n.year}-${n.month}-${n.day}'; }
-  void _ensureDoneDate() { final k = _todayKey(); if (_doneDate != k) { _doneDate = k; _done = {}; _storage.saveDone(_doneDate, _done); } }
+  void _ensureDoneDate() {
+    final k = _todayKey();
+    if (_doneDate != k) {
+      _doneDate = k; _done = {}; _storage.saveDone(_doneDate, _done);
+      _reschedule(); // bei Tageswechsel Erinnerungen für den neuen Tag neu planen
+    }
+  }
   bool isDone(String id) => _done.contains(id);
   int get doneCount { _ensureDoneDate(); return _today.where((a) => _done.contains(a.id)).length; }
   int get totalToday => _today.length;
@@ -128,7 +134,7 @@ class AppState extends ChangeNotifier {
   int _lastEnd(List<Activity> list) => list.isEmpty ? 7 * 60
       : list.map((a) => a.startMinutes + a.durationMin).reduce(max);
 
-  Future<void> _reschedule() async { try { await _notif.scheduleAll(_today); } catch (_) {} }
+  Future<void> _reschedule() async { try { await _notif.scheduleWeek(week); } catch (_) {} }
 
   void _afterEdit() {
     try { media.stop(); } catch (_) {}
