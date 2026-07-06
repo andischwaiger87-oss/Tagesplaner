@@ -8,6 +8,7 @@ import 'screens/plan_screen.dart';
 import 'screens/editor_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/help_wizard.dart';
+import 'screens/notif_setup.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -74,9 +75,12 @@ class _RootScaffoldState extends State<RootScaffold> {
     }
     if (!_onbHandled && !st.settings.onboardingDone) {
       _onbHandled = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
         st.updateSettings((x) => x.onboardingDone = true);
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpWizard()));
+        final nav = Navigator.of(context);
+        // 1) kurze Einführung, danach 2) Erinnerungen einrichten
+        await nav.push(MaterialPageRoute(builder: (_) => const HelpWizard()));
+        await nav.push(MaterialPageRoute(builder: (_) => const NotifSetupScreen()));
       });
     }
     const screens = [NowScreen(), PlanScreen(), EditorScreen(), SettingsScreen()];
