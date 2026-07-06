@@ -139,23 +139,27 @@ class AppState extends ChangeNotifier {
     _reschedule();
   }
 
-  void addFromTemplate(Activity t) {
+  bool addFromTemplate(Activity t) {
     final list = week[editingDay]!;
+    final start = _lastEnd(list);
+    if (start + t.durationMin > 1440) return false; // passt nicht mehr in den Tag
     final a = t.copy();
     a.id = 'a${DateTime.now().microsecondsSinceEpoch}';
-    a.startMinutes = _lastEnd(list);
-    list.add(a); _afterEdit();
+    a.startMinutes = start;
+    list.add(a); _afterEdit(); return true;
   }
 
-  void addCustom(String label, {String? spoken, int durationMin = 10}) {
+  bool addCustom(String label, {String? spoken, int durationMin = 10}) {
     final list = week[editingDay]!;
+    final start = _lastEnd(list);
+    if (start + durationMin > 1440) return false;
     list.add(Activity(
       id: 'c${DateTime.now().microsecondsSinceEpoch}',
       label: label.trim().isEmpty ? 'Neuer Eintrag' : label.trim(),
       spoken: (spoken == null || spoken.trim().isEmpty) ? 'Jetzt ist es Zeit für ${label.trim()}.' : spoken.trim(),
-      startMinutes: _lastEnd(list), durationMin: durationMin,
+      startMinutes: start, durationMin: durationMin,
     ));
-    _afterEdit();
+    _afterEdit(); return true;
   }
 
   void insertActivity(Activity a) { week[editingDay]!.add(a); _afterEdit(); }
@@ -168,6 +172,7 @@ class AppState extends ChangeNotifier {
 
   bool setStart(int i, int minutes) {
     final list = week[editingDay]!;
+    if (minutes + list[i].durationMin > 1440) return false; // Ende nach 24:00
     if (!_free(list, minutes, list[i].durationMin, i)) return false;
     list[i].startMinutes = minutes; _afterEdit(); return true;
   }
@@ -175,25 +180,35 @@ class AppState extends ChangeNotifier {
   bool setDuration(int i, int minutes) {
     final list = week[editingDay]!;
     minutes = minutes.clamp(2, 600);
+    if (list[i].startMinutes + minutes > 1440) return false; // reicht über den Tag hinaus
     if (!_free(list, list[i].startMinutes, minutes, i)) return false;
     list[i].durationMin = minutes; _afterEdit(); return true;
   }
 
   // Per Drag & Drop sortieren: Reihenfolge ändern und Uhrzeiten neu verketten
-  void reorderChain(int oldIndex, int newIndex) {
+  bool reorderChain(int oldIndex, int newIndex) {
     final list = week[editingDay]!;
-    if (oldIndex < 0 || oldIndex >= list.length) return;
+    if (oldIndex < 0 || oldIndex >= list.length) return false;
+    final snapOrder = List<Activity>.from(list);
+    final snapStarts = [for (final a in list) a.startMinutes];
     if (newIndex > oldIndex) newIndex -= 1;
     final item = list.removeAt(oldIndex);
     list.insert(newIndex.clamp(0, list.length), item);
     for (int i = 1; i < list.length; i++) {
       list[i].startMinutes = list[i - 1].startMinutes + list[i - 1].durationMin;
     }
+    // Läuft der Plan über Mitternacht? Dann Änderung zurücknehmen.
+    if (list.isNotEmpty && list.last.startMinutes + list.last.durationMin > 1440) {
+      list..clear()..addAll(snapOrder);
+      for (int i = 0; i < list.length; i++) list[i].startMinutes = snapStarts[i];
+      return false;
+    }
     try { media.stop(); } catch (_) {}
     _storage.saveWeek(week);
     _recompute(announce: false);
     notifyListeners();
     _reschedule();
+    return true;
   }
 
   void setIcon(int i, String path) { week[editingDay]![i].iconPath = path; _storage.saveWeek(week); notifyListeners(); }

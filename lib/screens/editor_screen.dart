@@ -38,7 +38,7 @@ class EditorScreen extends StatelessWidget {
         helpText: 'Startzeit wählen');
     if (t == null) return;
     final ok = st.setStart(i, t.hour * 60 + t.minute);
-    _snack(c, ok ? 'Zeit gespeichert' : 'Diese Zeit ist schon belegt');
+    _snack(c, ok ? 'Zeit gespeichert' : 'Belegt oder zu spät für die Dauer');
   }
 
   Future<void> _setDuration(BuildContext c, AppState st, int i) async {
@@ -66,7 +66,7 @@ class EditorScreen extends StatelessWidget {
     });
     if (mins == null) return;
     final ok = st.setDuration(i, mins);
-    _snack(c, ok ? 'Dauer gespeichert' : 'Überschneidet sich mit dem nächsten Eintrag');
+    _snack(c, ok ? 'Dauer gespeichert' : 'Zu lang – überschneidet sich oder reicht über den Tag hinaus');
   }
 
   @override
@@ -121,7 +121,7 @@ class EditorScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
         buildDefaultDragHandles: false,
         header: header,
-        onReorder: (o, n) { st.reorderChain(o, n); _snack(context, 'Reihenfolge geändert'); },
+        onReorder: (o, n) { if (st.reorderChain(o, n)) { _snack(context, 'Reihenfolge geändert'); } else { _snack(context, 'Passt zeitlich nicht in den Tag'); } },
         children: [for (int i = 0; i < st.plan.length; i++) _row(context, st, i, cs)],
       ),
     );
@@ -245,7 +245,10 @@ class _AddSheetState extends State<_AddSheet> {
   }
 
   void _add(Activity m) {
-    widget.st.addFromTemplate(m);
+    if (!widget.st.addFromTemplate(m)) {
+      _snack(context, 'Kein Platz mehr am Tag – bitte eine Aufgabe kürzen oder entfernen.');
+      return;
+    }
     setState(() { _confirm = m.label; _flashId = m.id; });
     _ct?.cancel(); _ct = Timer(const Duration(milliseconds: 1500), () { if (mounted) setState(() => _confirm = null); });
     _ft?.cancel(); _ft = Timer(const Duration(milliseconds: 550), () { if (mounted) setState(() => _flashId = null); });
@@ -265,12 +268,14 @@ class _AddSheetState extends State<_AddSheet> {
       actions: [
         TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Abbrechen')),
         FilledButton(onPressed: () {
-          if (nameC.text.trim().isNotEmpty) widget.st.addCustom(nameC.text, spoken: textC.text);
-          Navigator.pop(c, nameC.text.trim().isNotEmpty);
+          if (nameC.text.trim().isEmpty) { Navigator.pop(c); return; }
+          Navigator.pop(c, widget.st.addCustom(nameC.text, spoken: textC.text));
         }, child: const Text('Hinzufügen')),
       ],
     ));
-    if (added == true && mounted) setState(() { _confirm = nameC.text.trim(); });
+    if (!mounted) return;
+    if (added == true) { setState(() { _confirm = nameC.text.trim(); }); }
+    else if (added == false) { _snack(context, 'Kein Platz mehr am Tag – bitte kürzen.'); }
   }
 
   @override
