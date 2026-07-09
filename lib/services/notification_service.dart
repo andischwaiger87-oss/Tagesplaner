@@ -1,18 +1,25 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 import '../models/models.dart';
+import 'web_notify.dart' as webn;
 
-// "Aufpoppen": plant für die nächsten Tage exakte lokale Benachrichtigungen –
-// jeweils mit dem RICHTIGEN Wochentagsplan. Funktioniert auch bei geschlossener
-// App und offline (native Android/iOS). Wird bei jedem App-Start und jeder
-// Planänderung neu aufgebaut.
+// Erinnerungen:
+//  - Native App: exakte, geplante lokale Benachrichtigungen (auch bei geschlossener App).
+//  - Web: echte Browser-Benachrichtigungen, solange die App geöffnet/installiert ist.
 class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   bool _ready = false;
 
+  bool get supported => kIsWeb ? webn.webNotificationsSupported : true;
+  bool get granted => kIsWeb ? webn.webNotificationPermission == 'granted' : true;
+  bool get canInstallApp => kIsWeb && webn.pwaCanInstall;
+  void installApp() => webn.pwaInstall();
+
   Future<void> init() async {
     if (_ready) return;
+    if (kIsWeb) { _ready = true; return; } // Web nutzt die Browser-Schnittstelle
     tzdata.initializeTimeZones();
     try { tz.setLocalLocation(tz.getLocation('Europe/Vienna')); } catch (_) {}
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -23,12 +30,18 @@ class NotificationService {
     _ready = true;
   }
 
-  Future<void> requestPermissions() async {
+  /// Fragt die Erlaubnis an. Gibt zurück, ob Erinnerungen jetzt erlaubt sind.
+  Future<bool> requestPermissions() async {
+    if (kIsWeb) {
+      final p = await webn.requestWebNotificationPermission();
+      return p == 'granted';
+    }
     final a = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-    await a?.requestNotificationsPermission();
+    final ok = await a?.requestNotificationsPermission();
     try { await a?.requestExactAlarmsPermission(); } catch (_) {}
     final i = _plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
-    await i?.requestPermissions(alert: true, badge: true, sound: true);
+    final iosOk = await i?.requestPermissions(alert: true, badge: true, sound: true);
+    return (ok ?? iosOk ?? true);
   }
 
   NotificationDetails get _details => const NotificationDetails(
@@ -39,14 +52,18 @@ class NotificationService {
         iOS: DarwinNotificationDetails(interruptionLevel: InterruptionLevel.timeSensitive),
       );
 
-  Future<void> showNow(String title, String body) async {
+  /// Zeigt sofort eine Benachrichtigung. Gibt zurück, ob es geklappt hat.
+  Future<bool> showNow(String title, String body) async {
+    if (kIsWeb) return webn.showWebNotification(title, body);
     await init();
     await _plugin.show(0, title, body, _details);
+    return true;
   }
 
   /// Plant die nächsten 7 Tage vor – je Datum mit dem passenden Wochentagsplan.
   /// Deckelt die Anzahl (iOS erlaubt max. 64 offene Benachrichtigungen).
   Future<void> scheduleWeek(Map<int, List<Activity>> week) async {
+    if (kIsWeb) return; // Browser kann keine Termine im Voraus planen
     await init();
     await _plugin.cancelAll();
     final now = tz.TZDateTime.now(tz.local);
@@ -81,5 +98,5 @@ class NotificationService {
     }
   }
 
-  Future<void> cancelAll() async { await _plugin.cancelAll(); }
+  Future<void> cancelAll() async { if (!kIsWeb) await _plugin.cancelAll(); }
 }

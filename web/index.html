@@ -34,6 +34,19 @@
 
   <title>Tagesbegleiter</title>
   <link rel="manifest" href="manifest.json">
+  <script>
+    window.pwaCanInstall = false;
+    var _deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      _deferredPrompt = e;
+      window.pwaCanInstall = true;
+    });
+    window.pwaInstall = function () {
+      if (_deferredPrompt) { _deferredPrompt.prompt(); _deferredPrompt = null; window.pwaCanInstall = false; }
+    };
+    window.addEventListener('appinstalled', function () { window.pwaCanInstall = false; });
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

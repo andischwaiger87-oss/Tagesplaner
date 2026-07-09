@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:vibration/vibration.dart';
 import '../models/models.dart';
@@ -106,6 +107,10 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> _onActivityStart(Activity a) async {
+    // Im Browser gibt es keine geplanten Erinnerungen -> jetzt direkt melden.
+    if (kIsWeb) {
+      try { await _notif.showNow('Jetzt: ${a.label}', 'Tippe, um die App zu öffnen.'); } catch (_) {}
+    }
     if (settings.vibrate) {
       try { if (await Vibration.hasVibrator() ?? false) Vibration.vibrate(duration: 200); } catch (_) {}
     }
@@ -236,9 +241,17 @@ class AppState extends ChangeNotifier {
     _storage.saveWeek(week); _recompute(announce: false); notifyListeners(); _reschedule();
   }
 
-  Future<void> requestReminderPermissions() async { try { await _notif.requestPermissions(); } catch (_) {} }
-  Future<void> sendTestReminder() async {
-    try { await _notif.showNow('Test-Erinnerung', 'Super! Genau so meldet sich die App.'); } catch (_) {}
+  bool get remindersGranted => _notif.granted;
+  bool get canInstallApp => _notif.canInstallApp;
+  void installApp() => _notif.installApp();
+
+  Future<bool> requestReminderPermissions() async {
+    try { return await _notif.requestPermissions(); } catch (_) { return false; }
+  }
+
+  Future<bool> sendTestReminder() async {
+    try { return await _notif.showNow('Test-Erinnerung', 'Super! Genau so meldet sich die App.'); }
+    catch (_) { return false; }
   }
 
   void updateSettings(void Function(AppSettings) f) {
