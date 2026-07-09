@@ -8,3 +8,10 @@ build/
 
 build/
 .dart_tool/
+
+# Signatur-Schlüssel (NIEMALS committen)
+*.jks
+*.keystore
+key.properties
+android/key.properties
+android/app/upload.jks

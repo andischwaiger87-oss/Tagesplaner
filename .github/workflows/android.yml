@@ -26,6 +26,22 @@ jobs:
       - run: flutter --version
       - run: flutter pub get
 
+      - name: Signatur vorbereiten (falls Keystore hinterlegt)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload.jks
+            printf 'storeFile=upload.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+              "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
+            echo "Release-Signatur aktiv."
+          else
+            echo "Kein Keystore hinterlegt - es wird mit dem Debug-Schluessel gebaut."
+          fi
+
       # Versionsnummer zählt automatisch hoch -> Update über die alte App klappt
       - name: APK bauen (universell)
         run: flutter build apk --release --build-number=${{ github.run_number }}
