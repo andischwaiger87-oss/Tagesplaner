@@ -44,13 +44,17 @@ jobs:
 
       # Versionsnummer zählt automatisch hoch -> Update über die alte App klappt
       - name: APK bauen (universell)
-        run: flutter build apk --release --build-number=${{ github.run_number }}
+        run: flutter build apk --release --build-number=${{ github.run_number }} --dart-define=BUILD_NUMBER=${{ github.run_number }}
 
       - name: App-Bundle bauen (Play Store)
         run: flutter build appbundle --release --build-number=${{ github.run_number }}
 
       - name: APK freundlich benennen
         run: cp build/app/outputs/flutter-apk/app-release.apk Tagesbegleiter.apk
+
+      - name: Versionsdatei erzeugen
+        run: |
+          printf '{"build": %s}\n' "${{ github.run_number }}" > version.json
 
       - name: APK als Artefakt hochladen
         uses: actions/upload-artifact@v4
@@ -75,4 +79,6 @@ jobs:
           body: |
             Automatisch gebaut aus dem aktuellen Stand (Build ${{ github.run_number }}).
             Zum Installieren: **Tagesbegleiter.apk** antippen.
-          files: Tagesbegleiter.apk
+          files: |
+            Tagesbegleiter.apk
+            version.json

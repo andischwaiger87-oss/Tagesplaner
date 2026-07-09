@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config.dart';
+import '../services/update_check.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../services/image_util.dart';
@@ -31,6 +34,7 @@ class SettingsScreen extends StatelessWidget {
         Text('Alles individuell anpassbar', style: TextStyle(fontSize: 16, color: ink.withOpacity(.6))),
         const SizedBox(height: 16),
 
+        const _UpdateCard(),
         _header('Persönlich', ink),
         _card(cs, [
           // Profilbild + Name
@@ -276,6 +280,77 @@ class _NameFieldState extends State<_NameField> {
           if (n.isNotEmpty) st.updateSettings((x) => x.name = n);
         },
         onSubmitted: (_) => FocusScope.of(context).unfocus(),
+      ),
+    );
+  }
+}
+
+/// Zeigt eine Karte, sobald eine neuere Version veröffentlicht wurde.
+/// Nur in der installierten App – die Web-Version aktualisiert sich selbst.
+class _UpdateCard extends StatefulWidget {
+  const _UpdateCard();
+  @override
+  State<_UpdateCard> createState() => _UpdateCardState();
+}
+
+class _UpdateCardState extends State<_UpdateCard> {
+  int? _latest;
+
+  @override
+  void initState() {
+    super.initState();
+    _check();
+  }
+
+  Future<void> _check() async {
+    final b = await fetchLatestBuild();
+    if (mounted) setState(() => _latest = b);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = _latest;
+    if (kIsWeb || l == null || l <= kBuildNumber) return const SizedBox.shrink();
+    final cs = Theme.of(context).colorScheme;
+    return Semantics(
+      label: 'Eine neue Version der App ist verfügbar',
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 18),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: kAccent.withOpacity(.12),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: kAccent.withOpacity(.35), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.system_update_rounded, color: kAccent, size: 30),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Neue Version verfügbar',
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: cs.onSurface)),
+                  const SizedBox(height: 2),
+                  Text('Deine Pläne und Einstellungen bleiben erhalten.',
+                      style: TextStyle(fontSize: 13, color: cs.onSurface.withOpacity(.65))),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: kAccent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              onPressed: () => openExternal(kApkDownloadUrl),
+              child: const Text('Holen', style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
       ),
     );
   }

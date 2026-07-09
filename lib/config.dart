@@ -5,3 +5,7 @@
 // dann funktioniert dieser Link ohne Anmeldung.
 const String kApkDownloadUrl =
     'https://github.com/andischwaiger87-oss/Tagesplaner/releases/latest';
+
+// Wird vom Android-Build automatisch ans Release gehängt und enthält die Build-Nummer.
+const String kVersionJsonUrl =
+    'https://github.com/andischwaiger87-oss/Tagesplaner/releases/latest/download/version.json';
