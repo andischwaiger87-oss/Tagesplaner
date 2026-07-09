@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write   # nötig, um das Release zu aktualisieren
 
 jobs:
   build:
@@ -26,20 +26,37 @@ jobs:
       - run: flutter --version
       - run: flutter pub get
 
-      # Universelle APK (läuft auf allen Android-Geräten)
-      - run: flutter build apk --release
+      # Versionsnummer zählt automatisch hoch -> Update über die alte App klappt
+      - name: APK bauen (universell)
+        run: flutter build apk --release --build-number=${{ github.run_number }}
 
-      # App-Bundle (für den Google Play Store)
-      - run: flutter build appbundle --release
+      - name: App-Bundle bauen (Play Store)
+        run: flutter build appbundle --release --build-number=${{ github.run_number }}
 
-      - name: APK hochladen
+      - name: APK freundlich benennen
+        run: cp build/app/outputs/flutter-apk/app-release.apk Tagesbegleiter.apk
+
+      - name: APK als Artefakt hochladen
         uses: actions/upload-artifact@v4
         with:
           name: tagesbegleiter-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: Tagesbegleiter.apk
 
-      - name: App-Bundle hochladen
+      - name: App-Bundle als Artefakt hochladen
         uses: actions/upload-artifact@v4
         with:
           name: tagesbegleiter-aab
           path: build/app/outputs/bundle/release/app-release.aab
+
+      # Immer das gleiche Release "latest" mit der frischen APK aktualisieren.
+      # Damit zeigt .../releases/latest (der Knopf in der App) stets auf die neueste Version.
+      - name: Release "latest" aktualisieren
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Tagesbegleiter – neueste Version
+          make_latest: true
+          body: |
+            Automatisch gebaut aus dem aktuellen Stand (Build ${{ github.run_number }}).
+            Zum Installieren: **Tagesbegleiter.apk** antippen.
+          files: Tagesbegleiter.apk
