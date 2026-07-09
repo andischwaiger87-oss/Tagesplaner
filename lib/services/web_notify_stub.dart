@@ -5,3 +5,4 @@ Future<String> requestWebNotificationPermission() async => 'unsupported';
 Future<bool> showWebNotification(String title, String body) async => false;
 bool get pwaCanInstall => false;
 void pwaInstall() {}
+void openUrl(String url) {}

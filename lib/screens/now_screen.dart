@@ -34,8 +34,10 @@ class NowScreen extends StatelessWidget {
             child: s.avatarUser == null ? const Icon(Icons.person_rounded, color: Colors.white, size: 26) : null),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Hallo ${s.name}', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: cs.onSurface)),
+            Text('Hallo ${s.name}', maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: cs.onSurface)),
             Text(done ? 'Für heute' : (st.isActive ? 'Das ist jetzt dran' : 'Gleich dran'),
+                maxLines: 1, overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 16, color: cs.onSurface.withOpacity(.6))),
           ])),
           InkWell(

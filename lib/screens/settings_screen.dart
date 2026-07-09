@@ -46,12 +46,7 @@ class SettingsScreen extends StatelessWidget {
           const Divider(height: 26),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Text('Name', style: TextStyle(fontWeight: FontWeight.w600, color: ink)),
-            SizedBox(width: 170, child: TextField(
-              controller: TextEditingController(text: s.name)
-                ..selection = TextSelection.collapsed(offset: s.name.length),
-              onSubmitted: (v) { st.updateSettings((x) => x.name = v.trim().isEmpty ? 'Andi' : v.trim()); _toast(context, 'Name gespeichert'); },
-              decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-            )),
+            const _NameField(),
           ]),
         ]),
 
@@ -239,6 +234,48 @@ class SettingsScreen extends StatelessWidget {
           Text(on ? 'ausgewählt' : 'auswählen',
               style: TextStyle(fontSize: 12, color: on ? kAccent : cs.onSurface.withOpacity(.5))),
         ]),
+      ),
+    );
+  }
+}
+
+
+// Eigenes Namensfeld: behält den Controller, damit die Eingabe beim
+// sekündlichen Neuaufbau nicht überschrieben wird.
+class _NameField extends StatefulWidget {
+  const _NameField();
+  @override
+  State<_NameField> createState() => _NameFieldState();
+}
+
+class _NameFieldState extends State<_NameField> {
+  late final TextEditingController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = TextEditingController(text: context.read<AppState>().settings.name);
+  }
+
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    final st = context.read<AppState>();
+    return SizedBox(
+      width: 170,
+      child: TextField(
+        controller: _c,
+        maxLength: 20,
+        textInputAction: TextInputAction.done,
+        decoration: const InputDecoration(
+            isDense: true, border: OutlineInputBorder(), counterText: ''),
+        onChanged: (v) {
+          final n = v.trim();
+          if (n.isNotEmpty) st.updateSettings((x) => x.name = n);
+        },
+        onSubmitted: (_) => FocusScope.of(context).unfocus(),
       ),
     );
   }

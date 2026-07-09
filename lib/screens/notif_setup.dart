@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../services/web_notify.dart' as webn;
+import '../config.dart';
 
 // Maximal einfache Einrichtung: EIN Knopf erledigt alles.
 class NotifSetupScreen extends StatefulWidget {
@@ -48,7 +50,6 @@ class _NotifSetupScreenState extends State<NotifSetupScreen> {
               style: TextStyle(fontSize: 18, height: 1.35, color: ink)),
           const SizedBox(height: 22),
 
-          // Ein Knopf für alles
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
@@ -68,7 +69,6 @@ class _NotifSetupScreenState extends State<NotifSetupScreen> {
           ),
           const SizedBox(height: 18),
 
-          // Status, sehr klar
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -89,21 +89,44 @@ class _NotifSetupScreenState extends State<NotifSetupScreen> {
           ),
 
           if (kIsWeb) ...[
-            const SizedBox(height: 22),
-            Text('Noch besser: App installieren',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: ink)),
+            const SizedBox(height: 28),
+            Text('Am zuverlässigsten: Android-App installieren',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: ink)),
             const SizedBox(height: 6),
-            Text('So meldet sich die App auch dann, wenn du den Browser schließt.',
-                style: TextStyle(fontSize: 14, color: ink.withOpacity(.7))),
-            const SizedBox(height: 12),
+            Text('Nur so meldet sich die App auch dann, wenn sie ganz geschlossen ist.',
+                style: TextStyle(fontSize: 14, height: 1.3, color: ink.withOpacity(.7))),
+            const SizedBox(height: 14),
+
+            SizedBox(width: double.infinity, child: FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: cs.primary, foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(56),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
+              onPressed: () => webn.openUrl(kApkDownloadUrl),
+              icon: const Icon(Icons.download_rounded, size: 26),
+              label: const Text('App herunterladen', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            )),
+            const SizedBox(height: 14),
+
+            _miniStep(cs, ink, '1', 'Auf „App herunterladen" tippen.'),
+            _miniStep(cs, ink, '2', 'Die Datei antippen, die unten erscheint.'),
+            _miniStep(cs, ink, '3', 'Auf „Trotzdem installieren" bzw. „Zulassen" tippen.'),
+            _miniStep(cs, ink, '4', 'App öffnen und oben „Erinnerungen aktivieren" tippen.'),
+
+            const SizedBox(height: 24),
+            Divider(color: ink.withOpacity(.12)),
+            const SizedBox(height: 16),
+            Text('Alternative: auf den Startbildschirm legen',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: ink)),
+            const SizedBox(height: 4),
+            Text('Praktisch, aber Erinnerungen kommen nur, solange die App läuft.',
+                style: TextStyle(fontSize: 13.5, color: ink.withOpacity(.65))),
+            const SizedBox(height: 10),
             if (st.canInstallApp)
-              SizedBox(width: double.infinity, child: FilledButton.icon(
-                style: FilledButton.styleFrom(backgroundColor: cs.primary, foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(56),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
+              SizedBox(width: double.infinity, child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
                 onPressed: () => st.installApp(),
-                icon: const Icon(Icons.install_mobile_rounded, size: 26),
-                label: const Text('App installieren', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                icon: const Icon(Icons.install_mobile_rounded),
+                label: const Text('Auf den Startbildschirm'),
               ))
             else
               Container(
@@ -112,13 +135,13 @@ class _NotifSetupScreenState extends State<NotifSetupScreen> {
                 child: Row(children: [
                   Icon(Icons.more_vert_rounded, color: cs.primary),
                   const SizedBox(width: 10),
-                  Expanded(child: Text('Tippe oben rechts im Browser auf die 3 Punkte und wähle „App installieren".',
-                      style: TextStyle(fontSize: 14, height: 1.3, color: ink))),
+                  Expanded(child: Text('Im Browser oben rechts auf die 3 Punkte tippen und „App installieren" wählen.',
+                      style: TextStyle(fontSize: 13.5, height: 1.3, color: ink))),
                 ]),
               ),
           ],
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 26),
           Text('Tipp: Damit die Erinnerung immer pünktlich kommt, nimm die App in den Handy-Einstellungen '
               'von der Akku-Sparfunktion aus (Einstellungen → Apps → Tagesbegleiter → Akku → „Uneingeschränkt").',
               style: TextStyle(fontSize: 13, height: 1.35, color: ink.withOpacity(.6))),
@@ -126,4 +149,15 @@ class _NotifSetupScreenState extends State<NotifSetupScreen> {
       ),
     );
   }
+
+  Widget _miniStep(ColorScheme cs, Color ink, String n, String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          CircleAvatar(radius: 13, backgroundColor: cs.primary,
+              child: Text(n, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800))),
+          const SizedBox(width: 10),
+          Expanded(child: Padding(padding: const EdgeInsets.only(top: 2),
+              child: Text(text, style: TextStyle(fontSize: 14.5, height: 1.3, color: ink)))),
+        ]),
+      );
 }

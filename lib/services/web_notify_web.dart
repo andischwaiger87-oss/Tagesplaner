@@ -34,3 +34,7 @@ bool get pwaCanInstall {
 void pwaInstall() {
   try { js.context.callMethod('pwaInstall'); } catch (_) {}
 }
+
+void openUrl(String url) {
+  try { html.window.open(url, '_blank'); } catch (_) {}
+}
