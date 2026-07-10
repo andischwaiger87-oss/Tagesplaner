@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
+import '../widgets/motion.dart';
 import '../theme/app_theme.dart';
 import '../widgets/activity_icon.dart';
 import '../services/image_util.dart';
@@ -57,11 +58,9 @@ class NowScreen extends StatelessWidget {
         if (st.totalToday > 0) Padding(
           padding: const EdgeInsets.only(top: 12),
           child: Row(children: [
-            Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
+            Expanded(child: SmoothBar(
                 value: st.totalToday == 0 ? 0 : st.doneCount / st.totalToday,
-                minHeight: 10, backgroundColor: Colors.white,
-                valueColor: AlwaysStoppedAnimation(cs.primary)))),
+                color: cs.primary)),
             const SizedBox(width: 10),
             Text('${st.doneCount}/${st.totalToday} erledigt',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: cs.onSurface)),
@@ -69,10 +68,11 @@ class NowScreen extends StatelessWidget {
         ),
         const SizedBox(height: 20),
 
-        if (done)
-          _doneCard(cs)
-        else
-          _bigCard(context, st, a, cs, s),
+        SoftSwitch(
+          child: done
+              ? KeyedSubtree(key: const ValueKey('done'), child: _doneCard(cs))
+              : KeyedSubtree(key: ValueKey(a.id), child: _bigCard(context, st, a, cs, s)),
+        ),
 
         if (!done && s.showNext && nextList.isNotEmpty) ...[
           const SizedBox(height: 22),

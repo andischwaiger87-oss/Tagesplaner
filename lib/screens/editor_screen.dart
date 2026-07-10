@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../state/app_state.dart';
+import '../widgets/motion.dart';
 import '../models/models.dart';
 import '../data/default_data.dart';
 import '../theme/app_theme.dart';
@@ -156,12 +157,25 @@ class EditorScreen extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(child: Text(a.label, maxLines: 1, overflow: TextOverflow.ellipsis,
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17, color: ink))),
-          InkWell(onTap: () { final r = a.copy(); st.removeAt(i);
-              _snack(c, '„${a.label}" entfernt', undo: true, onUndo: () => st.insertActivity(r)); },
-            borderRadius: BorderRadius.circular(12),
-            child: Container(width: 40, height: 40,
-              decoration: BoxDecoration(color: const Color(0x22EC6A53), borderRadius: BorderRadius.circular(12)),
-              child: const Icon(Icons.delete_outline_rounded, size: 22, color: kAccent))),
+          Builder(builder: (_) {
+            final locked = !st.canRemove(i);
+            return Pressable(
+              onTap: () {
+                if (locked) {
+                  _snack(c, 'Aufstehen und Schlafen gehen geben den Tag vor.');
+                  return;
+                }
+                final r = a.copy(); st.removeAt(i);
+                _snack(c, '„${a.label}" entfernt', undo: true, onUndo: () => st.insertActivity(r));
+              },
+              child: Container(width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: locked ? const Color(0x11000000) : const Color(0x22EC6A53),
+                  borderRadius: BorderRadius.circular(12)),
+                child: Icon(locked ? Icons.lock_outline_rounded : Icons.delete_outline_rounded,
+                    size: 22, color: locked ? Colors.black26 : kAccent)),
+            );
+          }),
         ]),
         const SizedBox(height: 10),
         Row(children: [

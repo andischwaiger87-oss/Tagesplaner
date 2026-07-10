@@ -12,6 +12,9 @@ import '../data/default_data.dart';
 
 enum DayState { active, upcoming, done }
 
+/// Kleinster sinnvoller Abstand zwischen zwei Schritten (Minuten).
+const int kMinStep = 2;
+
 class AppState extends ChangeNotifier {
   final _storage = StorageService();
   final media = MediaService();
@@ -143,7 +146,7 @@ class AppState extends ChangeNotifier {
 
   void _afterEdit() {
     try { media.stop(); } catch (_) {}
-    edit.sort((a, b) => a.startMinutes.compareTo(b.startMinutes));
+    _normalize(edit);
     _storage.saveWeek(week);
     _recompute(announce: false);
     notifyListeners();
@@ -175,94 +178,91 @@ class AppState extends ChangeNotifier {
 
   void insertActivity(Activity a) { week[editingDay]!.add(a); _afterEdit(); }
 
+  /// Aufstehen (erster) und Schlafen gehen (letzter) geben den Tagesrahmen vor.
+  bool canRemove(int i) {
+    final list = week[editingDay]!;
+    return list.length > 2 && i > 0 && i < list.length - 1;
+  }
+
   void removeAt(int i) {
     final list = week[editingDay]!;
     if (i < 0 || i >= list.length) return;
     list.removeAt(i); _afterEdit();
   }
 
-  /// Schiebt alle anderen Einträge so, dass der Anker exakt bleibt und
-  /// nichts überlappt. Spätere weichen nach hinten, frühere nach vorne aus.
-  /// Alle Dauern bleiben erhalten.
-  bool _cascade(List<Activity> list, Activity anchor) {
-    final idx = list.indexOf(anchor);
-    if (idx < 0) return false;
-
-    // Nach hinten: jeder Folgeeintrag beginnt frühestens am Ende des vorigen.
-    for (int k = idx + 1; k < list.length; k++) {
-      final prevEnd = list[k - 1].startMinutes + list[k - 1].durationMin;
-      if (list[k].startMinutes < prevEnd) list[k].startMinutes = prevEnd;
+  /// Der Tag ist lückenlos: Jeder Schritt dauert exakt bis zum nächsten.
+  /// Nur der letzte Schritt (Schlafen gehen) hat eine eigene Dauer.
+  void _normalize(List<Activity> list) {
+    if (list.isEmpty) return;
+    list.sort((a, b) => a.startMinutes.compareTo(b.startMinutes));
+    for (int i = 0; i < list.length - 1; i++) {
+      final d = list[i + 1].startMinutes - list[i].startMinutes;
+      list[i].durationMin = d < kMinStep ? kMinStep : d;
     }
-    // Nach vorne: jeder frühere Eintrag endet spätestens beim Start des nächsten.
-    for (int k = idx - 1; k >= 0; k--) {
-      final nextStart = list[k + 1].startMinutes;
-      if (list[k].startMinutes + list[k].durationMin > nextStart) {
-        list[k].startMinutes = nextStart - list[k].durationMin;
-      }
+    final last = list.last;
+    if (last.startMinutes + last.durationMin > 1440) {
+      last.durationMin = (1440 - last.startMinutes).clamp(kMinStep, 600);
     }
-    // Passt der ganze Tag noch zwischen 0:00 und 24:00?
-    if (list.first.startMinutes < 0) return false;
-    if (list.last.startMinutes + list.last.durationMin > 1440) return false;
-    return true;
   }
 
   List<int> _snapshot(List<Activity> list) => [for (final a in list) a.startMinutes];
-
-  void _restore(List<Activity> list, List<Activity> order, List<int> starts) {
-    list..clear()..addAll(order);
-    for (int k = 0; k < list.length; k++) list[k].startMinutes = starts[k];
+  void _restore(List<Activity> list, List<int> starts, List<int> durs) {
+    for (int k = 0; k < list.length; k++) {
+      list[k].startMinutes = starts[k];
+      list[k].durationMin = durs[k];
+    }
   }
 
-  /// Sortiert nach Startzeit; bei Gleichstand behält der Anker den vorderen Platz.
-  void _sortAround(List<Activity> list, Activity anchor) {
-    list.sort((x, y) {
-      final c = x.startMinutes.compareTo(y.startMinutes);
-      if (c != 0) return c;
-      if (identical(x, anchor)) return -1;
-      if (identical(y, anchor)) return 1;
-      return 0;
-    });
+  bool _valid(List<Activity> list) {
+    if (list.isEmpty) return true;
+    if (list.first.startMinutes < 0) return false;
+    if (list.last.startMinutes + list.last.durationMin > 1440) return false;
+    for (int i = 1; i < list.length; i++) {
+      if (list[i].startMinutes - list[i - 1].startMinutes < kMinStep) return false;
+    }
+    return true;
   }
 
-  /// Setzt die Startzeit exakt. Die übrigen Schritte passen sich automatisch an.
+  /// Setzt die Startzeit exakt. Dieser Schritt und alle späteren rücken mit;
+  /// der vorherige Schritt dauert automatisch bis hierher.
   bool setStart(int i, int minutes) {
     final list = week[editingDay]!;
     if (i < 0 || i >= list.length) return false;
-    final a = list[i];
     minutes = minutes.clamp(0, 1439);
-    if (minutes + a.durationMin > 1440) return false; // dieser Eintrag selbst passt nicht
 
-    final order = List<Activity>.from(list);
     final starts = _snapshot(list);
+    final durs = [for (final a in list) a.durationMin];
+    final delta = minutes - list[i].startMinutes;
+    if (delta == 0) return true;
 
-    a.startMinutes = minutes;
-    _sortAround(list, a);
-    if (!_cascade(list, a)) { _restore(list, order, starts); return false; }
+    for (int k = i; k < list.length; k++) list[k].startMinutes += delta;
+    _normalize(list);
 
+    if (!_valid(list)) { _restore(list, starts, durs); return false; }
     _afterEdit();
     return true;
   }
 
-  /// Setzt die Dauer exakt. Die späteren Schritte rücken automatisch nach.
+  /// Setzt die Dauer exakt. Der nächste Schritt beginnt genau danach,
+  /// alle weiteren rücken um denselben Betrag mit.
   bool setDuration(int i, int minutes) {
     final list = week[editingDay]!;
     if (i < 0 || i >= list.length) return false;
-    final a = list[i];
-    minutes = minutes.clamp(2, 600);
-    if (a.startMinutes + minutes > 1440) return false;
+    minutes = minutes.clamp(kMinStep, 600);
 
-    final order = List<Activity>.from(list);
     final starts = _snapshot(list);
-    final oldDur = a.durationMin;
+    final durs = [for (final a in list) a.durationMin];
 
-    a.durationMin = minutes;
-    _sortAround(list, a);
-    if (!_cascade(list, a)) {
-      a.durationMin = oldDur;
-      _restore(list, order, starts);
-      return false;
+    if (i == list.length - 1) {
+      list[i].durationMin = minutes; // letzter Schritt: eigene Dauer
+    } else {
+      final newNextStart = list[i].startMinutes + minutes;
+      final delta = newNextStart - list[i + 1].startMinutes;
+      for (int k = i + 1; k < list.length; k++) list[k].startMinutes += delta;
     }
+    _normalize(list);
 
+    if (!_valid(list)) { _restore(list, starts, durs); return false; }
     _afterEdit();
     return true;
   }
@@ -279,6 +279,7 @@ class AppState extends ChangeNotifier {
     for (int i = 1; i < list.length; i++) {
       list[i].startMinutes = list[i - 1].startMinutes + list[i - 1].durationMin;
     }
+    _normalize(list);
     // Läuft der Plan über Mitternacht? Dann Änderung zurücknehmen.
     if (list.isNotEmpty && list.last.startMinutes + list.last.durationMin > 1440) {
       list..clear()..addAll(snapOrder);

@@ -88,8 +88,9 @@ class _NotifSetupScreenState extends State<NotifSetupScreen> {
             ]),
           ),
 
+          if (!kIsWeb) const _Diagnose(),
+
           if (kIsWeb) ...[
-            if (!kIsWeb) const _Diagnose(),
 
             const SizedBox(height: 28),
             Text('Am zuverlässigsten: Android-App installieren',
