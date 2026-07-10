@@ -67,7 +67,7 @@ class AppSettings {
   bool onboardingDone;
 
   AppSettings({
-    this.name = 'Andi', this.voice = 'f', this.highContrast = false,
+    this.name = '', this.voice = 'f', this.highContrast = false,
     this.fontScale = 1.0, this.reduceMotion = false, this.showNext = true,
     this.showClock = true, this.vibrate = true, this.volume = 1.0, this.themeIndex = 0,
     this.avatarUser, this.avatarF, this.avatarM,
@@ -83,7 +83,7 @@ class AppSettings {
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> j) => AppSettings(
-        name: j['name'] ?? 'Andi', voice: j['voice'] ?? 'f',
+        name: j['name'] ?? '', voice: j['voice'] ?? 'f',
         highContrast: j['highContrast'] ?? false,
         fontScale: (j['fontScale'] ?? 1.0).toDouble(),
         reduceMotion: j['reduceMotion'] ?? false, showNext: j['showNext'] ?? true,

@@ -34,8 +34,7 @@ class NowScreen extends StatelessWidget {
             child: s.avatarUser == null ? const Icon(Icons.person_rounded, color: Colors.white, size: 26) : null),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Hallo ${s.name}', maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: cs.onSurface)),
+            _Greeting(name: s.name),
             Text(done ? 'Für heute' : (st.isActive ? 'Das ist jetzt dran' : 'Gleich dran'),
                 maxLines: 1, overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 16, color: cs.onSurface.withOpacity(.6))),
@@ -188,4 +187,44 @@ class _Bar extends StatelessWidget {
       duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 500), width: cons.maxWidth * progress.clamp(0, 1),
       decoration: BoxDecoration(color: fill, borderRadius: BorderRadius.circular(14)))),
   ));
+}
+
+/// Begrüßung, die auch mit sehr langen Namen funktioniert:
+/// verkleinert die Schrift stufenweise und darf auf zwei Zeilen umbrechen.
+class _Greeting extends StatelessWidget {
+  const _Greeting({required this.name});
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final n = name.trim();
+    final text = n.isEmpty ? 'Hallo!' : 'Hallo $n';
+
+    // Je länger der Name, desto kleiner die Schrift – nie kleiner als gut lesbar.
+    final double size = n.length <= 10
+        ? 26
+        : n.length <= 16
+            ? 22
+            : 19;
+
+    return Semantics(
+      header: true,
+      label: text,
+      child: ExcludeSemantics(
+        child: Text(
+          text,
+          maxLines: 2,
+          softWrap: true,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: size,
+            height: 1.15,
+            fontWeight: FontWeight.w700,
+            color: cs.onSurface,
+          ),
+        ),
+      ),
+    );
+  }
 }
