@@ -41,7 +41,7 @@ class EditorScreen extends StatelessWidget {
             data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: true), child: child!));
     if (t == null) return;
     final ok = st.setStart(i, t.hour * 60 + t.minute);
-    _snack(c, ok ? 'Zeit gespeichert' : 'Diese Zeit passt nicht mehr in den Tag.');
+    _snack(c, ok ? 'Zeit gespeichert' : 'Der Tag würde über Mitternacht hinausgehen.');
   }
 
   Future<void> _setDuration(BuildContext c, AppState st, int i) async {

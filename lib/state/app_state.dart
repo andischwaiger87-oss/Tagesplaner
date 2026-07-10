@@ -142,7 +142,11 @@ class AppState extends ChangeNotifier {
   int _lastEnd(List<Activity> list) => list.isEmpty ? 7 * 60
       : list.map((a) => a.startMinutes + a.durationMin).reduce(max);
 
-  Future<void> _reschedule() async { try { await _notif.scheduleWeek(week); } catch (_) {} }
+  String? lastScheduleError; // für die Diagnose sichtbar
+  Future<void> _reschedule() async {
+    try { await _notif.scheduleWeek(week); lastScheduleError = null; }
+    catch (e) { lastScheduleError = '$e'; }
+  }
 
   void _afterEdit() {
     try { media.stop(); } catch (_) {}
@@ -223,19 +227,44 @@ class AppState extends ChangeNotifier {
     return true;
   }
 
-  /// Setzt die Startzeit exakt. Dieser Schritt und alle späteren rücken mit;
-  /// der vorherige Schritt dauert automatisch bis hierher.
+  /// Schafft Platz um den bewegten Schritt herum – so wenig wie möglich.
+  /// Der bewegte Schritt behält seine Dauer; Nachfolger rücken nur nach, wenn
+  /// sie sonst überlappen, und höchstens bis zum Mindestabstand. Sobald ein
+  /// späterer Schritt ohnehin genug Platz hat, bleibt der Rest des Tages stehen.
+  void _makeRoom(List<Activity> list, int i, int anchorDur) {
+    for (int k = i + 1; k < list.length; k++) {
+      final need = (k - 1 == i) ? anchorDur : kMinStep;
+      final minStart = list[k - 1].startMinutes + need;
+      if (list[k].startMinutes < minStart) {
+        list[k].startMinutes = minStart;
+      } else {
+        break;
+      }
+    }
+    for (int k = i - 1; k >= 0; k--) {
+      final maxStart = list[k + 1].startMinutes - kMinStep;
+      if (list[k].startMinutes > maxStart) {
+        list[k].startMinutes = maxStart;
+      } else {
+        break;
+      }
+    }
+  }
+
+  /// Setzt die Startzeit exakt. Nachfolgende Schritte rücken nur so weit nach,
+  /// wie sie müssen; frühere weichen nach vorne aus. Dauern bleiben erhalten.
   bool setStart(int i, int minutes) {
     final list = week[editingDay]!;
     if (i < 0 || i >= list.length) return false;
     minutes = minutes.clamp(0, 1439);
 
     final starts = _snapshot(list);
-    final durs = [for (final a in list) a.durationMin];
-    final delta = minutes - list[i].startMinutes;
-    if (delta == 0) return true;
+    final durs = [for (final x in list) x.durationMin < kMinStep ? kMinStep : x.durationMin];
+    if (minutes == list[i].startMinutes) return true;
 
-    for (int k = i; k < list.length; k++) list[k].startMinutes += delta;
+    final anchorDur = durs[i];
+    list[i].startMinutes = minutes;
+    _makeRoom(list, i, anchorDur);
     _normalize(list);
 
     if (!_valid(list)) { _restore(list, starts, durs); return false; }
@@ -243,22 +272,21 @@ class AppState extends ChangeNotifier {
     return true;
   }
 
-  /// Setzt die Dauer exakt. Der nächste Schritt beginnt genau danach,
-  /// alle weiteren rücken um denselben Betrag mit.
+  /// Setzt die Dauer exakt. Der nächste Schritt beginnt genau danach;
+  /// weitere rücken nur nach, wenn sie sonst überlappen würden.
   bool setDuration(int i, int minutes) {
     final list = week[editingDay]!;
     if (i < 0 || i >= list.length) return false;
     minutes = minutes.clamp(kMinStep, 600);
 
     final starts = _snapshot(list);
-    final durs = [for (final a in list) a.durationMin];
+    final durs = [for (final x in list) x.durationMin < kMinStep ? kMinStep : x.durationMin];
 
     if (i == list.length - 1) {
-      list[i].durationMin = minutes; // letzter Schritt: eigene Dauer
+      list[i].durationMin = minutes; // letzter Schritt hat eine eigene Dauer
     } else {
-      final newNextStart = list[i].startMinutes + minutes;
-      final delta = newNextStart - list[i + 1].startMinutes;
-      for (int k = i + 1; k < list.length; k++) list[k].startMinutes += delta;
+      list[i + 1].startMinutes = list[i].startMinutes + minutes;
+      _makeRoom(list, i + 1, durs[i + 1]);
     }
     _normalize(list);
 

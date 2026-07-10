@@ -59,6 +59,12 @@ android {
                 signingConfigs.getByName("release")
             else
                 signingConfigs.getByName("debug")
+            // Zuverlässigkeit vor Dateigröße: kein Code-Schrumpfen.
+            // R8 entfernte sonst Typinfos, die die Erinnerungen zum Speichern brauchen
+            // ("Missing type parameter" in zonedSchedule).
+            isMinifyEnabled = false
+            isShrinkResources = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }
