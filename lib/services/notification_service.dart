@@ -99,4 +99,57 @@ class NotificationService {
   }
 
   Future<void> cancelAll() async { if (!kIsWeb) await _plugin.cancelAll(); }
+
+  // ---------- Diagnose ----------
+
+  /// Zeigt Android an, dass Benachrichtigungen für die App erlaubt sind?
+  Future<bool?> notificationsEnabled() async {
+    if (kIsWeb) return granted;
+    await init();
+    final a = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    try { return await a?.areNotificationsEnabled(); } catch (_) { return null; }
+  }
+
+  /// Darf die App exakte Alarme stellen? (Ohne das kommen Meldungen verspätet.)
+  Future<bool?> exactAlarmsAllowed() async {
+    if (kIsWeb) return null;
+    await init();
+    final a = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    try { return await a?.canScheduleExactNotifications(); } catch (_) { return null; }
+  }
+
+  /// Wie viele Erinnerungen sind aktuell beim System hinterlegt?
+  Future<int> pendingCount() async {
+    if (kIsWeb) return 0;
+    await init();
+    try { return (await _plugin.pendingNotificationRequests()).length; } catch (_) { return 0; }
+  }
+
+  /// Wann kommt die nächste hinterlegte Erinnerung? (nur zur Anzeige)
+  DateTime? lastScheduledFirst;
+
+  /// Echter Hintergrund-Test: plant eine Meldung in [seconds] Sekunden.
+  /// Der Bildschirm darf danach ausgehen – genau das wird geprüft.
+  Future<String> scheduleSelfTest({int seconds = 60}) async {
+    if (kIsWeb) return 'Im Browser nicht möglich – bitte die Android-App verwenden.';
+    await init();
+    final when = tz.TZDateTime.now(tz.local).add(Duration(seconds: seconds));
+    try {
+      await _plugin.zonedSchedule(999, 'Test-Erinnerung',
+          'Wenn du das siehst, funktionieren die Erinnerungen.', when, _details,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime);
+      return 'OK-EXAKT';
+    } catch (e) {
+      try {
+        await _plugin.zonedSchedule(999, 'Test-Erinnerung',
+            'Wenn du das siehst, funktionieren die Erinnerungen.', when, _details,
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime);
+        return 'OK-UNGEFÄHR';
+      } catch (e2) {
+        return 'FEHLER: $e2';
+      }
+    }
+  }
 }

@@ -181,19 +181,90 @@ class AppState extends ChangeNotifier {
     list.removeAt(i); _afterEdit();
   }
 
-  bool setStart(int i, int minutes) {
-    final list = week[editingDay]!;
-    if (minutes + list[i].durationMin > 1440) return false; // Ende nach 24:00
-    if (!_free(list, minutes, list[i].durationMin, i)) return false;
-    list[i].startMinutes = minutes; _afterEdit(); return true;
+  /// Schiebt alle anderen Einträge so, dass der Anker exakt bleibt und
+  /// nichts überlappt. Spätere weichen nach hinten, frühere nach vorne aus.
+  /// Alle Dauern bleiben erhalten.
+  bool _cascade(List<Activity> list, Activity anchor) {
+    final idx = list.indexOf(anchor);
+    if (idx < 0) return false;
+
+    // Nach hinten: jeder Folgeeintrag beginnt frühestens am Ende des vorigen.
+    for (int k = idx + 1; k < list.length; k++) {
+      final prevEnd = list[k - 1].startMinutes + list[k - 1].durationMin;
+      if (list[k].startMinutes < prevEnd) list[k].startMinutes = prevEnd;
+    }
+    // Nach vorne: jeder frühere Eintrag endet spätestens beim Start des nächsten.
+    for (int k = idx - 1; k >= 0; k--) {
+      final nextStart = list[k + 1].startMinutes;
+      if (list[k].startMinutes + list[k].durationMin > nextStart) {
+        list[k].startMinutes = nextStart - list[k].durationMin;
+      }
+    }
+    // Passt der ganze Tag noch zwischen 0:00 und 24:00?
+    if (list.first.startMinutes < 0) return false;
+    if (list.last.startMinutes + list.last.durationMin > 1440) return false;
+    return true;
   }
 
+  List<int> _snapshot(List<Activity> list) => [for (final a in list) a.startMinutes];
+
+  void _restore(List<Activity> list, List<Activity> order, List<int> starts) {
+    list..clear()..addAll(order);
+    for (int k = 0; k < list.length; k++) list[k].startMinutes = starts[k];
+  }
+
+  /// Sortiert nach Startzeit; bei Gleichstand behält der Anker den vorderen Platz.
+  void _sortAround(List<Activity> list, Activity anchor) {
+    list.sort((x, y) {
+      final c = x.startMinutes.compareTo(y.startMinutes);
+      if (c != 0) return c;
+      if (identical(x, anchor)) return -1;
+      if (identical(y, anchor)) return 1;
+      return 0;
+    });
+  }
+
+  /// Setzt die Startzeit exakt. Die übrigen Schritte passen sich automatisch an.
+  bool setStart(int i, int minutes) {
+    final list = week[editingDay]!;
+    if (i < 0 || i >= list.length) return false;
+    final a = list[i];
+    minutes = minutes.clamp(0, 1439);
+    if (minutes + a.durationMin > 1440) return false; // dieser Eintrag selbst passt nicht
+
+    final order = List<Activity>.from(list);
+    final starts = _snapshot(list);
+
+    a.startMinutes = minutes;
+    _sortAround(list, a);
+    if (!_cascade(list, a)) { _restore(list, order, starts); return false; }
+
+    _afterEdit();
+    return true;
+  }
+
+  /// Setzt die Dauer exakt. Die späteren Schritte rücken automatisch nach.
   bool setDuration(int i, int minutes) {
     final list = week[editingDay]!;
+    if (i < 0 || i >= list.length) return false;
+    final a = list[i];
     minutes = minutes.clamp(2, 600);
-    if (list[i].startMinutes + minutes > 1440) return false; // reicht über den Tag hinaus
-    if (!_free(list, list[i].startMinutes, minutes, i)) return false;
-    list[i].durationMin = minutes; _afterEdit(); return true;
+    if (a.startMinutes + minutes > 1440) return false;
+
+    final order = List<Activity>.from(list);
+    final starts = _snapshot(list);
+    final oldDur = a.durationMin;
+
+    a.durationMin = minutes;
+    _sortAround(list, a);
+    if (!_cascade(list, a)) {
+      a.durationMin = oldDur;
+      _restore(list, order, starts);
+      return false;
+    }
+
+    _afterEdit();
+    return true;
   }
 
   // Per Drag & Drop sortieren: Reihenfolge ändern und Uhrzeiten neu verketten
@@ -242,6 +313,11 @@ class AppState extends ChangeNotifier {
   }
 
   bool get remindersGranted => _notif.granted;
+  Future<bool?> notificationsEnabled() => _notif.notificationsEnabled();
+  Future<bool?> exactAlarmsAllowed() => _notif.exactAlarmsAllowed();
+  Future<int> pendingCount() => _notif.pendingCount();
+  Future<String> scheduleSelfTest({int seconds = 60}) => _notif.scheduleSelfTest(seconds: seconds);
+  Future<void> rescheduleNow() => _reschedule();
   bool get canInstallApp => _notif.canInstallApp;
   void installApp() => _notif.installApp();
 

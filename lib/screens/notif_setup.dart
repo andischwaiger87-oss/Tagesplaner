@@ -89,6 +89,8 @@ class _NotifSetupScreenState extends State<NotifSetupScreen> {
           ),
 
           if (kIsWeb) ...[
+            if (!kIsWeb) const _Diagnose(),
+
             const SizedBox(height: 28),
             Text('Am zuverlässigsten: Android-App installieren',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: ink)),
@@ -193,4 +195,102 @@ class _NotifSetupScreenState extends State<NotifSetupScreen> {
               child: Text(text, style: TextStyle(fontSize: 14.5, height: 1.3, color: ink)))),
         ]),
       );
+}
+
+/// Zeigt genau an, was Android gerade erlaubt – und testet echt im Hintergrund.
+class _Diagnose extends StatefulWidget {
+  const _Diagnose();
+  @override
+  State<_Diagnose> createState() => _DiagnoseState();
+}
+
+class _DiagnoseState extends State<_Diagnose> {
+  bool? _enabled;
+  bool? _exact;
+  int _pending = -1;
+  String? _testResult;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final st = context.read<AppState>();
+    await st.rescheduleNow();
+    final e = await st.notificationsEnabled();
+    final x = await st.exactAlarmsAllowed();
+    final p = await st.pendingCount();
+    if (mounted) setState(() { _enabled = e; _exact = x; _pending = p; });
+  }
+
+  Future<void> _selfTest() async {
+    setState(() { _busy = true; _testResult = null; });
+    final r = await context.read<AppState>().scheduleSelfTest(seconds: 60);
+    if (!mounted) return;
+    setState(() { _busy = false; _testResult = r; });
+    await _load();
+  }
+
+  Widget _row(Color ink, String label, bool? ok, {String? hint}) {
+    final good = ok == true;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(ok == null ? Icons.help_outline_rounded
+                : good ? Icons.check_circle_rounded : Icons.cancel_rounded,
+            size: 22, color: ok == null ? ink.withOpacity(.4)
+                : good ? const Color(0xFF2E7D6F) : const Color(0xFFD84C3A)),
+        const SizedBox(width: 10),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: TextStyle(fontSize: 14.5, color: ink)),
+          if (!good && hint != null)
+            Padding(padding: const EdgeInsets.only(top: 2),
+              child: Text(hint, style: TextStyle(fontSize: 12.5, height: 1.3, color: ink.withOpacity(.6)))),
+        ])),
+      ]),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final ink = cs.onSurface;
+    return Container(
+      margin: const EdgeInsets.only(top: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(20)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Prüfung', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: ink)),
+        const SizedBox(height: 8),
+        _row(ink, 'Benachrichtigungen erlaubt', _enabled,
+            hint: 'Handy-Einstellungen → Apps → Tagesbegleiter → Benachrichtigungen einschalten.'),
+        _row(ink, 'Exakte Alarme erlaubt', _exact,
+            hint: 'Handy-Einstellungen → Apps → Tagesbegleiter → „Wecker und Erinnerungen" zulassen.'),
+        _row(ink, _pending < 0 ? 'Erinnerungen werden geladen …'
+                 : '$_pending Erinnerungen sind hinterlegt', _pending > 0,
+            hint: 'Es ist nichts geplant. Lege im Tagesplan Schritte an – die Zeiten müssen in der Zukunft liegen.'),
+        const SizedBox(height: 12),
+        SizedBox(width: double.infinity, child: OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+          onPressed: _busy ? null : _selfTest,
+          icon: const Icon(Icons.timer_outlined),
+          label: Text(_busy ? 'Wird geplant …' : 'In 1 Minute testen'),
+        )),
+        if (_testResult != null) Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Text(
+            _testResult == 'OK-EXAKT'
+                ? 'Geplant. Sperre jetzt den Bildschirm – in 1 Minute muss die Meldung kommen.'
+                : _testResult == 'OK-UNGEFÄHR'
+                    ? 'Geplant, aber nur ungefähr. Erlaube oben „Exakte Alarme", damit es pünktlich ist.'
+                    : _testResult!,
+            style: TextStyle(fontSize: 13.5, height: 1.35, color: ink.withOpacity(.75)),
+          ),
+        ),
+      ]),
+    );
+  }
 }
