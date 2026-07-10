@@ -1,11 +1,13 @@
 // Zentrale Links der App.
-//
-// Trage hier den öffentlichen Download-Link zur Android-App (APK) ein.
-// Empfehlung: im GitHub-Repo ein "Release" anlegen und die APK anhängen –
-// dann funktioniert dieser Link ohne Anmeldung.
+
+/// Lädt die APK sofort herunter – ohne Umweg über die GitHub-Seite.
 const String kApkDownloadUrl =
+    'https://github.com/andischwaiger87-oss/Tagesplaner/releases/latest/download/Tagesbegleiter.apk';
+
+/// Die Release-Seite (nur als Rückfallebene / für Neugierige).
+const String kReleasePageUrl =
     'https://github.com/andischwaiger87-oss/Tagesplaner/releases/latest';
 
-// Wird vom Android-Build automatisch ans Release gehängt und enthält die Build-Nummer.
+/// Enthält die Build-Nummer der neuesten Version.
 const String kVersionJsonUrl =
     'https://github.com/andischwaiger87-oss/Tagesplaner/releases/latest/download/version.json';

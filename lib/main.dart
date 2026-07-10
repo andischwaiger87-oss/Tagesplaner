@@ -42,7 +42,12 @@ class TagesbegleiterApp extends StatelessWidget {
             : BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                  colors: [seed.withOpacity(.22), const Color(0xFFEFF3F1), const Color(0xFFF4F7F5)],
+                  colors: [
+                    // deckend: sonst liegt in der App Schwarz statt Weiß darunter
+                    Color.alphaBlend(seed.withOpacity(.22), const Color(0xFFF4F7F5)),
+                    const Color(0xFFEFF3F1),
+                    const Color(0xFFF4F7F5),
+                  ],
                   stops: const [0.0, 0.40, 1.0],
                 ),
               );

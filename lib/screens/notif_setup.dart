@@ -107,10 +107,43 @@ class _NotifSetupScreenState extends State<NotifSetupScreen> {
             )),
             const SizedBox(height: 14),
 
-            _miniStep(cs, ink, '1', 'Auf „App herunterladen" tippen.'),
-            _miniStep(cs, ink, '2', 'Die Datei antippen, die unten erscheint.'),
-            _miniStep(cs, ink, '3', 'Auf „Trotzdem installieren" bzw. „Zulassen" tippen.'),
-            _miniStep(cs, ink, '4', 'App öffnen und oben „Erinnerungen aktivieren" tippen.'),
+            _miniStep(cs, ink, '1', 'Auf „App herunterladen" tippen. Die Datei lädt sofort.'),
+            _miniStep(cs, ink, '2', 'Unten auf „Öffnen" tippen.'),
+            _miniStep(cs, ink, '3', 'Android fragt nach. Auf „Details" und dann auf „Trotzdem installieren" tippen.'),
+            _miniStep(cs, ink, '4', 'App öffnen und „Erinnerungen aktivieren" tippen.'),
+
+            const SizedBox(height: 16),
+            // Beruhigung: die Warnung ist normal und erwartbar.
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: cs.primary.withOpacity(.10),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.shield_outlined, color: cs.primary, size: 26),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Eine Warnung ist normal',
+                            style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, color: ink)),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Android warnt bei jeder App, die nicht aus dem Play Store kommt – '
+                          'auch bei sicheren. Diese App ist quelloffen, kostenlos, werbefrei und '
+                          'sammelt keine Daten. Du kannst die Installation bedenkenlos bestätigen.',
+                          style: TextStyle(fontSize: 13.5, height: 1.35, color: ink.withOpacity(.75)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
             const SizedBox(height: 24),
             Divider(color: ink.withOpacity(.12)),
