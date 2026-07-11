@@ -8,7 +8,6 @@ import 'screens/plan_screen.dart';
 import 'screens/editor_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/help_wizard.dart';
-import 'widgets/motion.dart';
 import 'screens/notif_setup.dart';
 
 void main() {
@@ -89,12 +88,39 @@ class _RootScaffoldState extends State<RootScaffold> {
         await nav.push(MaterialPageRoute(builder: (_) => const NotifSetupScreen()));
       });
     }
-    const screens = [NowScreen(), PlanScreen(), EditorScreen(), SettingsScreen()];
+    // Begleiteter Modus: das ganze UI ist auf die aktuelle Aufgabe reduziert.
+    // Keine Navigation, kein Bearbeiten – nur ein dezenter Zugang zu den
+    // Einstellungen (für Betreuende). Daten bleiben vollständig erhalten.
+    if (st.settings.minimalUI) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(children: [
+          const NowScreen(),
+          Positioned(
+            top: 0, right: 0,
+            child: SafeArea(child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Semantics(
+                label: 'Einstellungen (für Betreuende)',
+                button: true,
+                child: IconButton(
+                  iconSize: 26,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(.35),
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const _SettingsPage())),
+                ),
+              ),
+            )),
+          ),
+        ]),
+      );
+    }
+
+    final screens = const [NowScreen(), PlanScreen(), EditorScreen(), SettingsScreen()];
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SoftSwitch(
-        child: KeyedSubtree(key: ValueKey(st.navTab), child: screens[st.navTab.clamp(0, screens.length - 1)]),
-      ),
+      body: IndexedStack(index: st.navTab.clamp(0, screens.length - 1), children: screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: st.navTab,
         onDestinationSelected: (i) { ScaffoldMessenger.of(context).clearSnackBars(); st.goTab(i); },
@@ -105,6 +131,23 @@ class _RootScaffoldState extends State<RootScaffold> {
           NavigationDestination(icon: Icon(Icons.settings_outlined), label: 'Einstellungen'),
         ],
       ),
+    );
+  }
+}
+
+/// Einstellungen als eigene Seite (mit Zurück-Pfeil) – für den begleiteten Modus.
+class _SettingsPage extends StatelessWidget {
+  const _SettingsPage();
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('Einstellungen'),
+      ),
+      body: const SettingsScreen(),
     );
   }
 }

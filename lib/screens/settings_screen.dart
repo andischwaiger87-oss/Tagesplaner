@@ -82,10 +82,12 @@ class SettingsScreen extends StatelessWidget {
 
         _header('Ansicht', ink),
         _card(cs, [
-          _switch(context, 'Minimal-Ansicht', ink, s.minimalUI,
-              (v) { st.updateSettings((x) => x.minimalUI = v); _toast(context, v ? 'Minimal-Ansicht an' : 'Klassische Ansicht'); }),
+          _switch(context, 'Begleiteter Modus', ink, s.minimalUI,
+              (v) { st.updateSettings((x) => x.minimalUI = v); _toast(context, v ? 'Begleiteter Modus an' : 'Normale Ansicht'); }),
           Padding(padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
-            child: Text('Zeigt nur die aktuelle Aufgabe – sehr groß und ruhig. Deine Pläne bleiben unverändert.',
+            child: Text('Für Menschen, die eine sehr einfache Bedienung brauchen: Die ganze App zeigt nur '
+                'die aktuelle Aufgabe – groß, ruhig, ohne Menüs. Betreuende erreichen die Einstellungen '
+                'oben rechts über das Zahnrad. Alle Pläne und Daten bleiben erhalten.',
                 style: TextStyle(fontSize: 13, height: 1.3, color: ink.withOpacity(.6)))),
         ]),
 
