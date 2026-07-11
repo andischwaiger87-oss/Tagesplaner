@@ -80,6 +80,15 @@ class SettingsScreen extends StatelessWidget {
           ),
         ]),
 
+        _header('Ansicht', ink),
+        _card(cs, [
+          _switch(context, 'Minimal-Ansicht', ink, s.minimalUI,
+              (v) { st.updateSettings((x) => x.minimalUI = v); _toast(context, v ? 'Minimal-Ansicht an' : 'Klassische Ansicht'); }),
+          Padding(padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+            child: Text('Zeigt nur die aktuelle Aufgabe – sehr groß und ruhig. Deine Pläne bleiben unverändert.',
+                style: TextStyle(fontSize: 13, height: 1.3, color: ink.withOpacity(.6)))),
+        ]),
+
         _header('Darstellung', ink),
         _card(cs, [
           _row('Farbthema', ink, Row(mainAxisSize: MainAxisSize.min, children: [
@@ -97,7 +106,7 @@ class SettingsScreen extends StatelessWidget {
             onChanged: (v) => st.updateSettings((x) => x.fontScale = v),
             onChangeEnd: (v) => _toast(context, 'Schriftgröße gespeichert')))),
           _switch(context, 'Animationen reduzieren', ink, s.reduceMotion,
-              (v) => st.updateSettings((x) => x.reduceMotion = v)),
+              (v) { st.updateSettings((x) => x.reduceMotion = v); _toast(context, v ? 'Animationen aus' : 'Animationen an'); }),
         ]),
 
         _header('Verhalten', ink),

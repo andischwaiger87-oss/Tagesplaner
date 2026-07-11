@@ -27,6 +27,8 @@ class NowScreen extends StatelessWidget {
     final up = st.upcoming;
     final nextList = st.isActive ? up : (up.length > 1 ? up.sublist(1) : const <Activity>[]);
 
+    if (s.minimalUI) return _MinimalNow(st: st, a: a, done: done, next: nextList.isEmpty ? null : nextList.first);
+
     return SafeArea(
       child: ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 20), children: [
         Row(children: [
@@ -112,7 +114,7 @@ class NowScreen extends StatelessWidget {
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: hc ? cs.primary : kAccent)),
           const SizedBox(height: 14),
         ],
-        SizedBox(width: double.infinity, child: FilledButton(
+        Pressable(scale: .97, child: SizedBox(width: double.infinity, child: FilledButton(
           style: FilledButton.styleFrom(backgroundColor: hc ? cs.primary : kAccent,
             foregroundColor: hc ? Colors.black : Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 20),
@@ -122,7 +124,7 @@ class NowScreen extends StatelessWidget {
             Icon(Icons.volume_up_rounded, size: 28), SizedBox(width: 10),
             Text('Vorlesen', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
           ]),
-        )),
+        ))),
         const SizedBox(height: 10),
         TextButton.icon(
           onPressed: () => st.toggleDone(a.id),
@@ -152,7 +154,7 @@ class NowScreen extends StatelessWidget {
   Widget _nextRow(BuildContext c, AppState st, Activity n, ColorScheme cs) {
     final mins = st.minutesUntil(n);
     final ring = (1 - (mins / 60).clamp(0, 1)).toDouble();
-    return Container(
+    return Pressable(scale: .98, onTap: () => st.goTab(1), child: Container(
       margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(.05), blurRadius: 12)]),
@@ -173,7 +175,7 @@ class NowScreen extends StatelessWidget {
         SizedBox(width: 64, child: Text(fmtUntil(mins), textAlign: TextAlign.right,
             style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: cs.onSurface.withOpacity(.7)))),
       ]),
-    );
+    ));
   }
 }
 
@@ -226,5 +228,78 @@ class _Greeting extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Maximal reduzierte Ansicht: nur die aktuelle Aufgabe, groß und ruhig.
+/// Keine Kopfzeile, keine Liste – ein Bild, ein Wort, ein Knopf.
+class _MinimalNow extends StatelessWidget {
+  const _MinimalNow({required this.st, required this.a, required this.done, this.next});
+  final AppState st;
+  final Activity a;
+  final bool done;
+  final Activity? next;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final s = st.settings;
+
+    if (done) {
+      return SafeArea(child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.check_circle_rounded, size: 120, color: cs.primary),
+        const SizedBox(height: 20),
+        Text('Für heute geschafft', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: cs.onSurface)),
+      ])));
+    }
+
+    return SafeArea(child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+      child: Column(children: [
+        const Spacer(),
+        SoftSwitch(child: Column(key: ValueKey(a.id), children: [
+          IconTile(activity: a, tileSize: 240, iconSize: 150, radius: 56),
+          const SizedBox(height: 32),
+          Text(a.label, textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 44, fontWeight: FontWeight.w800, height: 1.05, color: cs.onSurface)),
+          if (s.showClock) Padding(padding: const EdgeInsets.only(top: 10),
+            child: Text(st.isActive ? 'jetzt' : 'um ${a.timeLabel} Uhr',
+                style: TextStyle(fontSize: 20, color: cs.onSurface.withOpacity(.5)))),
+        ])),
+        const SizedBox(height: 28),
+        Pressable(scale: .95, child: SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: s.highContrast ? cs.primary : kAccent,
+              foregroundColor: s.highContrast ? Colors.black : Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
+            onPressed: () => st.speakCurrent(),
+            child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.volume_up_rounded, size: 32), SizedBox(width: 12),
+              Text('Vorlesen', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
+            ]),
+          ),
+        )),
+        const SizedBox(height: 14),
+        Pressable(onTap: () => st.toggleDone(a.id), child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(st.isDone(a.id) ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                size: 30, color: st.isDone(a.id) ? cs.primary : cs.onSurface.withOpacity(.45)),
+            const SizedBox(width: 10),
+            Text(st.isDone(a.id) ? 'Erledigt' : 'Erledigt',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600,
+                    color: st.isDone(a.id) ? cs.primary : cs.onSurface.withOpacity(.6))),
+          ]),
+        )),
+        const Spacer(),
+        if (next != null && s.showNext)
+          Text('danach: ${next!.label}',
+              style: TextStyle(fontSize: 16, color: cs.onSurface.withOpacity(.4))),
+        const SizedBox(height: 8),
+      ]),
+    ));
   }
 }

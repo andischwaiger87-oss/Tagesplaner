@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:vibration/vibration.dart';
@@ -139,9 +138,6 @@ class AppState extends ChangeNotifier {
     return true;
   }
 
-  int _lastEnd(List<Activity> list) => list.isEmpty ? 7 * 60
-      : list.map((a) => a.startMinutes + a.durationMin).reduce(max);
-
   String? lastScheduleError; // für die Diagnose sichtbar
   Future<void> _reschedule() async {
     try { await _notif.scheduleWeek(week); lastScheduleError = null; }
@@ -157,30 +153,47 @@ class AppState extends ChangeNotifier {
     _reschedule();
   }
 
-  bool addFromTemplate(Activity t) {
+  /// Fügt einen neuen Schritt ein – vor „Schlafen gehen", damit der Tagesrahmen
+  /// erhalten bleibt. Der neue Schritt nimmt seine Zeit aus dem letzten Abschnitt.
+  /// Gibt false zurück, wenn dort kein Platz mehr ist.
+  bool _addBeforeLast(Activity a, int wantDur) {
     final list = week[editingDay]!;
-    final start = _lastEnd(list);
-    if (start + t.durationMin > 1440) return false; // passt nicht mehr in den Tag
-    final a = t.copy();
-    a.id = 'a${DateTime.now().microsecondsSinceEpoch}';
-    a.startMinutes = start;
-    list.add(a); _afterEdit(); return true;
+    if (list.length < 2) {
+      // Noch kein Rahmen: einfach ans Ende setzen.
+      a.startMinutes = list.isEmpty ? 7 * 60 : list.last.startMinutes + list.last.durationMin;
+      if (a.startMinutes + wantDur > 1440) return false;
+      a.durationMin = wantDur;
+      list.add(a); _afterEdit(); return true;
+    }
+    final sleepStart = list.last.startMinutes;
+    final prevStart = list[list.length - 2].startMinutes;
+    final room = sleepStart - prevStart; // Platz im letzten Abschnitt
+    if (room < 2 * kMinStep) return false; // kein Platz zum Teilen
+    final dur = wantDur.clamp(kMinStep, room - kMinStep);
+    a.startMinutes = sleepStart - dur;
+    a.durationMin = dur;
+    list.insert(list.length - 1, a);
+    _afterEdit(); // _normalize berechnet alle Dauern neu -> lückenlos
+    return true;
   }
 
-  bool addCustom(String label, {String? spoken, int durationMin = 10}) {
-    final list = week[editingDay]!;
-    final start = _lastEnd(list);
-    if (start + durationMin > 1440) return false;
-    list.add(Activity(
+  bool addFromTemplate(Activity t) {
+    final a = t.copy();
+    a.id = 'a${DateTime.now().microsecondsSinceEpoch}';
+    return _addBeforeLast(a, t.durationMin < kMinStep ? 15 : t.durationMin);
+  }
+
+  bool addCustom(String label, {String? spoken, int durationMin = 15}) {
+    final a = Activity(
       id: 'c${DateTime.now().microsecondsSinceEpoch}',
       label: label.trim().isEmpty ? 'Neuer Eintrag' : label.trim(),
       spoken: (spoken == null || spoken.trim().isEmpty) ? 'Jetzt ist es Zeit für ${label.trim()}.' : spoken.trim(),
-      startMinutes: start, durationMin: durationMin,
-    ));
-    _afterEdit(); return true;
+      startMinutes: 0, durationMin: durationMin,
+    );
+    return _addBeforeLast(a, durationMin);
   }
 
-  void insertActivity(Activity a) { week[editingDay]!.add(a); _afterEdit(); }
+  void insertActivity(Activity a) { _addBeforeLast(a, a.durationMin < kMinStep ? 15 : a.durationMin); }
 
   /// Aufstehen (erster) und Schlafen gehen (letzter) geben den Tagesrahmen vor.
   bool canRemove(int i) {

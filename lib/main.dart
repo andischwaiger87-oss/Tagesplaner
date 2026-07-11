@@ -8,6 +8,7 @@ import 'screens/plan_screen.dart';
 import 'screens/editor_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/help_wizard.dart';
+import 'widgets/motion.dart';
 import 'screens/notif_setup.dart';
 
 void main() {
@@ -91,7 +92,9 @@ class _RootScaffoldState extends State<RootScaffold> {
     const screens = [NowScreen(), PlanScreen(), EditorScreen(), SettingsScreen()];
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: IndexedStack(index: st.navTab, children: screens),
+      body: SoftSwitch(
+        child: KeyedSubtree(key: ValueKey(st.navTab), child: screens[st.navTab.clamp(0, screens.length - 1)]),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: st.navTab,
         onDestinationSelected: (i) { ScaffoldMessenger.of(context).clearSnackBars(); st.goTab(i); },
