@@ -34,7 +34,7 @@ class TagesbegleiterApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      theme: AppTheme.build(themeIndex: s.themeIndex, highContrast: s.highContrast, reduceMotion: s.reduceMotion),
+      theme: AppTheme.build(themeIndex: s.themeIndex, highContrast: s.highContrast, reduceMotion: s.reduceMotion, fontFamily: s.fontFamily),
       themeAnimationDuration: s.reduceMotion ? Duration.zero : kThemeAnimationDuration,
       builder: (context, child) {
         final deco = s.highContrast

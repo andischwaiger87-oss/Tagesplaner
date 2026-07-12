@@ -93,14 +93,32 @@ class SettingsScreen extends StatelessWidget {
 
         _header('Darstellung', ink),
         _card(cs, [
-          _row('Farbthema', ink, Row(mainAxisSize: MainAxisSize.min, children: [
-            for (int i = 0; i < kSeeds.length; i++) GestureDetector(
-              onTap: () { st.updateSettings((x) => x.themeIndex = i); _toast(context, 'Farbe übernommen'); },
-              child: Container(width: 30, height: 30, margin: const EdgeInsets.only(left: 8),
-                decoration: BoxDecoration(color: kSeeds[i], shape: BoxShape.circle,
-                  border: Border.all(color: s.themeIndex == i ? ink : Colors.transparent, width: 3))),
-            ),
-          ])),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Farbe', style: TextStyle(fontSize: 16, color: ink)),
+              const SizedBox(height: 12),
+              Wrap(spacing: 14, runSpacing: 14, children: [
+                for (int i = 0; i < kSeeds.length; i++) GestureDetector(
+                  onTap: () { st.updateSettings((x) => x.themeIndex = i); _toast(context, 'Farbe übernommen'); },
+                  child: Container(width: 44, height: 44,
+                    decoration: BoxDecoration(color: kSeeds[i], shape: BoxShape.circle,
+                      border: Border.all(color: s.themeIndex == i ? ink : Colors.black12,
+                          width: s.themeIndex == i ? 4 : 1)),
+                    child: s.themeIndex == i
+                        ? const Icon(Icons.check_rounded, color: Colors.white, size: 24)
+                        : null),
+                ),
+              ]),
+            ]),
+          ),
+          _row('Schriftart', ink, DropdownButton<String>(
+            value: kFonts.contains(s.fontFamily) ? s.fontFamily : kFonts.first,
+            underline: const SizedBox.shrink(),
+            borderRadius: BorderRadius.circular(16),
+            items: [for (final f in kFonts) DropdownMenuItem(value: f, child: Text(f))],
+            onChanged: (v) { if (v != null) { st.updateSettings((x) => x.fontFamily = v); _toast(context, 'Schriftart übernommen'); } },
+          )),
           _switch(context, 'Hoher Kontrast', ink, s.highContrast,
               (v) => st.updateSettings((x) => x.highContrast = v)),
           _row('Schriftgröße', ink, SizedBox(width: 170, child: Slider(

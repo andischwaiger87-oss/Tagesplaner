@@ -262,9 +262,10 @@ class _AddSheetState extends State<_AddSheet> {
 
   void _add(Activity m) {
     if (!widget.st.addFromTemplate(m)) {
-      _snack(context, 'Kein Platz mehr am Tag – bitte eine Aufgabe kürzen oder entfernen.');
+      _snack(context, 'Der Tag ist ganz voll. Bitte einen Schritt entfernen.');
       return;
     }
+    _snack(context, '„${m.label}" hinzugefügt');
     setState(() { _confirm = m.label; _flashId = m.id; });
     _ct?.cancel(); _ct = Timer(const Duration(milliseconds: 1500), () { if (mounted) setState(() => _confirm = null); });
     _ft?.cancel(); _ft = Timer(const Duration(milliseconds: 550), () { if (mounted) setState(() => _flashId = null); });
@@ -290,8 +291,8 @@ class _AddSheetState extends State<_AddSheet> {
       ],
     ));
     if (!mounted) return;
-    if (added == true) { setState(() { _confirm = nameC.text.trim(); }); }
-    else if (added == false) { _snack(context, 'Kein Platz mehr am Tag – bitte kürzen.'); }
+    if (added == true) { _snack(context, '„${nameC.text.trim()}" hinzugefügt'); setState(() { _confirm = nameC.text.trim(); }); }
+    else if (added == false) { _snack(context, 'Der Tag ist ganz voll. Bitte einen Schritt entfernen.'); }
   }
 
   @override

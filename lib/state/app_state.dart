@@ -153,27 +153,49 @@ class AppState extends ChangeNotifier {
     _reschedule();
   }
 
-  /// Fügt einen neuen Schritt ein – vor „Schlafen gehen", damit der Tagesrahmen
-  /// erhalten bleibt. Der neue Schritt nimmt seine Zeit aus dem letzten Abschnitt.
-  /// Gibt false zurück, wenn dort kein Platz mehr ist.
+  /// Fügt einen neuen Schritt ein – vor „Schlafen gehen". Aufsteh- und
+  /// Zubettgehzeit bleiben fix; die nötige Zeit wird dem längsten bestehenden
+  /// Schritt abgezogen. Das gelingt praktisch immer.
   bool _addBeforeLast(Activity a, int wantDur) {
     final list = week[editingDay]!;
     if (list.length < 2) {
-      // Noch kein Rahmen: einfach ans Ende setzen.
       a.startMinutes = list.isEmpty ? 7 * 60 : list.last.startMinutes + list.last.durationMin;
-      if (a.startMinutes + wantDur > 1440) return false;
-      a.durationMin = wantDur;
+      a.durationMin = wantDur < kMinStep ? kMinStep : wantDur;
+      if (a.startMinutes + a.durationMin > 1440) {
+        a.startMinutes = (1440 - a.durationMin).clamp(0, 1439);
+      }
       list.add(a); _afterEdit(); return true;
     }
-    final sleepStart = list.last.startMinutes;
-    final prevStart = list[list.length - 2].startMinutes;
-    final room = sleepStart - prevStart; // Platz im letzten Abschnitt
-    if (room < 2 * kMinStep) return false; // kein Platz zum Teilen
-    final dur = wantDur.clamp(kMinStep, room - kMinStep);
-    a.startMinutes = sleepStart - dur;
-    a.durationMin = dur;
-    list.insert(list.length - 1, a);
-    _afterEdit(); // _normalize berechnet alle Dauern neu -> lückenlos
+
+    final sleep = list.last;
+    final sleepDur = sleep.durationMin;
+    final w = list.first.startMinutes;                 // Aufstehen bleibt
+    final active = list.sublist(0, list.length - 1);   // alle außer Schlafen
+    final durs = [for (final x in active) x.durationMin < kMinStep ? kMinStep : x.durationMin];
+
+    int dur = wantDur < kMinStep ? kMinStep : wantDur;
+
+    // Zeit für den neuen Schritt freimachen: vom jeweils längsten Schritt nehmen.
+    int need = dur;
+    while (need > 0) {
+      int bi = 0;
+      for (int i = 1; i < durs.length; i++) { if (durs[i] > durs[bi]) bi = i; }
+      final reducible = durs[bi] - kMinStep;
+      if (reducible <= 0) break; // nichts mehr zu holen
+      final take = reducible < need ? reducible : need;
+      durs[bi] -= take; need -= take;
+    }
+    if (need > 0) dur -= need;          // nicht genug Platz -> neuen Schritt kürzen
+    if (dur < kMinStep) return false;   // theoretisch: Tag komplett voll mit Minimalschritten
+
+    // Neue Startzeiten aufbauen (lückenlos, Zubettgehzeit bleibt gleich).
+    int cur = w;
+    for (int i = 0; i < active.length; i++) { active[i].startMinutes = cur; cur += durs[i]; }
+    a.startMinutes = cur; a.durationMin = dur; cur += dur;
+    sleep.startMinutes = cur; sleep.durationMin = sleepDur;
+
+    list..clear()..addAll(active)..add(a)..add(sleep);
+    _afterEdit();
     return true;
   }
 

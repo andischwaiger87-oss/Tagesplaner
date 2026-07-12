@@ -66,6 +66,7 @@ class AppSettings {
   String? avatarM;
   bool onboardingDone;
   bool minimalUI;
+  String fontFamily;
 
   AppSettings({
     this.name = '', this.voice = 'f', this.highContrast = false,
@@ -74,6 +75,7 @@ class AppSettings {
     this.avatarUser, this.avatarF, this.avatarM,
     this.onboardingDone = false,
     this.minimalUI = false,
+    this.fontFamily = 'Lexend',
   });
 
   Map<String, dynamic> toJson() => {
@@ -83,6 +85,7 @@ class AppSettings {
         'avatarUser': avatarUser, 'avatarF': avatarF, 'avatarM': avatarM,
         'onboardingDone': onboardingDone,
         'minimalUI': minimalUI,
+        'fontFamily': fontFamily,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> j) => AppSettings(
@@ -95,5 +98,6 @@ class AppSettings {
         avatarUser: j['avatarUser'], avatarF: j['avatarF'], avatarM: j['avatarM'],
         onboardingDone: j['onboardingDone'] ?? false,
         minimalUI: j['minimalUI'] ?? false,
+        fontFamily: j['fontFamily'] ?? 'Lexend',
       );
 }

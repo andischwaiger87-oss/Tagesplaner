@@ -8,7 +8,33 @@ const List<Color> kSeeds = [
   Color(0xFF8E5BA8), // Lila
   Color(0xFFC9772E), // Orange
   Color(0xFF4F7A52), // Grün
+  Color(0xFFB0466A), // Beere
+  Color(0xFF4A63B0), // Indigo
+  Color(0xFF00897B), // Petrol
+  Color(0xFF7A5C3E), // Braun
+  Color(0xFF546E7A), // Schiefer
 ];
+
+/// Wählbare, gut lesbare Schriftarten. Atkinson Hyperlegible ist eigens für
+/// Sehschwäche entwickelt; die anderen sind klar und freundlich.
+const List<String> kFonts = [
+  'Lexend',
+  'Atkinson Hyperlegible',
+  'Nunito',
+  'Poppins',
+  'Mulish',
+];
+
+/// Liefert ein TextTheme für die gewählte Schrift – mit sicherem Rückfall.
+TextTheme _fontTextTheme(String family, TextTheme base) {
+  try { return GoogleFonts.getTextTheme(family, base); }
+  catch (_) { return GoogleFonts.lexendTextTheme(base); }
+}
+
+TextStyle _fontStyle(String family, {double? fontSize, FontWeight? fontWeight, Color? color}) {
+  try { return GoogleFonts.getFont(family, fontSize: fontSize, fontWeight: fontWeight, color: color); }
+  catch (_) { return GoogleFonts.lexend(fontSize: fontSize, fontWeight: fontWeight, color: color); }
+}
 const Color kAccent = Color(0xFFEC6A53); // kräftiges Korall für die Hauptaktion
 const Color kInk = Color(0xFF132019);
 
@@ -33,7 +59,7 @@ class AppTheme {
     return cs.brightness == Brightness.dark ? const Color(0xFF26302E) : cs.primary;
   }
 
-  static ThemeData build({required int themeIndex, required bool highContrast, bool reduceMotion = false}) {
+  static ThemeData build({required int themeIndex, required bool highContrast, bool reduceMotion = false, String fontFamily = 'Lexend'}) {
     final seed = kSeeds[themeIndex.clamp(0, kSeeds.length - 1)];
     final dark = highContrast;
     final scheme = ColorScheme.fromSeed(
@@ -51,7 +77,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: dark ? bg : Colors.transparent,
-      textTheme: GoogleFonts.lexendTextTheme(baseTextTheme)
+      textTheme: _fontTextTheme(fontFamily, baseTextTheme)
           .apply(bodyColor: text, displayColor: text),
       splashFactory: reduceMotion ? NoSplash.splashFactory : InkSparkle.splashFactory,
       pageTransitionsTheme: reduceMotion ? _noTransitions : null,
@@ -59,7 +85,7 @@ class AppTheme {
         backgroundColor: scheme.surface,
         indicatorColor: seed.withOpacity(dark ? .30 : .16),
         labelTextStyle: WidgetStatePropertyAll(
-          GoogleFonts.lexend(fontSize: 12, fontWeight: FontWeight.w600, color: text),
+          _fontStyle(fontFamily, fontSize: 12, fontWeight: FontWeight.w600, color: text),
         ),
         iconTheme: WidgetStatePropertyAll(IconThemeData(color: text)),
         height: 74,
