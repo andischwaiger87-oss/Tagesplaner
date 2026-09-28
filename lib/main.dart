@@ -9,6 +9,7 @@ import 'screens/editor_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/help_wizard.dart';
 import 'screens/notif_setup.dart';
+import 'widgets/pin_gate.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -107,8 +108,10 @@ class _RootScaffoldState extends State<RootScaffold> {
                   iconSize: 26,
                   color: Theme.of(context).colorScheme.onSurface.withOpacity(.35),
                   icon: const Icon(Icons.settings_outlined),
-                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const _SettingsPage())),
+                  onPressed: () async {
+                    if (!await ensureUnlocked(context, st) || !context.mounted) return;
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const _SettingsPage()));
+                  },
                 ),
               ),
             )),
@@ -123,7 +126,12 @@ class _RootScaffoldState extends State<RootScaffold> {
       body: IndexedStack(index: st.navTab.clamp(0, screens.length - 1), children: screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: st.navTab,
-        onDestinationSelected: (i) { ScaffoldMessenger.of(context).clearSnackBars(); st.goTab(i); },
+        onDestinationSelected: (i) async {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          // Bearbeiten & Einstellungen ggf. per PIN geschützt (für Betreuende)
+          if (i >= 2 && !await ensureUnlocked(context, st)) return;
+          st.goTab(i);
+        },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.schedule_rounded), label: 'Jetzt'),
           NavigationDestination(icon: Icon(Icons.view_agenda_outlined), label: 'Tagesplan'),

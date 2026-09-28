@@ -60,4 +60,21 @@ void main() {
     expect(Activity(id: 'c1', label: 'Adrian abholen').lookupKey, 'adrian_abholen');
     expect(Activity(id: 'x', key: 'kochen', label: 'Mein Kochen').lookupKey, 'kochen');
   });
+
+  test('Personengruppe, Notfall & Sperre: Standardwerte für alte Einstellungen', () {
+    final r = AppSettings.fromJson({'name': 'Andi', 'discreet': true});
+    expect(r.profile, 'allgemein');
+    expect(r.pin, '');
+    expect(r.showHelpButton, false);
+    expect(r.discreet, true);
+    final d = AppSettings(profile: 'demenz', emergencyPhone: '+43 664 123');
+    expect(AppSettings.fromJson(d.toJson()).showHelpButton, true);
+    expect(AppSettings(profile: 'allgemein', emergencyPhone: '123').showHelpButton, false);
+  });
+
+  test('Medikamente werden nachgefragt', () {
+    expect(Activity(id: 'a', key: 'medikament', label: 'Medikament').needsFollowUp, true);
+    expect(Activity(id: 'b', label: 'Tablette Abend').needsFollowUp, true);
+    expect(Activity(id: 'c', key: 'kochen', label: 'Kochen').needsFollowUp, false);
+  });
 }

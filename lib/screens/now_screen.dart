@@ -7,6 +7,7 @@ import '../widgets/activity_icon.dart';
 import '../services/image_util.dart';
 import '../models/models.dart';
 import '../util/format.dart';
+import 'help_screen.dart';
 
 String _todayLabel() {
   final n = DateTime.now();
@@ -27,7 +28,8 @@ class NowScreen extends StatelessWidget {
     final up = st.upcoming;
     final nextList = st.isActive ? up : (up.length > 1 ? up.sublist(1) : const <Activity>[]);
 
-    if (s.minimalUI) return _MinimalNow(st: st, a: a, done: done, next: nextList.isEmpty ? null : nextList.first);
+    final night = st.isNight;
+    if (s.minimalUI) return _MinimalNow(st: st, a: a, done: done, night: night, next: nextList.isEmpty ? null : nextList.first);
 
     return SafeArea(
       child: ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 20), children: [
@@ -71,12 +73,19 @@ class NowScreen extends StatelessWidget {
         const SizedBox(height: 20),
 
         SoftSwitch(
-          child: done
+          child: night
+              ? KeyedSubtree(key: const ValueKey('night'), child: _nightCard(cs))
+              : done
               ? KeyedSubtree(key: const ValueKey('done'), child: _doneCard(cs))
               : KeyedSubtree(key: ValueKey(a.id), child: _bigCard(context, st, a, cs, s)),
         ),
 
-        if (!done && s.showNext && nextList.isNotEmpty) ...[
+        if (s.showHelpButton) ...[
+          const SizedBox(height: 16),
+          const HelpButton(),
+        ],
+
+        if (!done && !night && s.showNext && nextList.isNotEmpty) ...[
           const SizedBox(height: 22),
           Text('Als Nächstes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: cs.onSurface)),
           const SizedBox(height: 10),
@@ -150,6 +159,27 @@ class NowScreen extends StatelessWidget {
       Text('Es ist gerade keine Aufgabe geplant.', style: TextStyle(color: cs.onSurface.withOpacity(.6))),
     ]),
   );
+
+  /// Nachtansicht (Personengruppen): ruhig, mit Uhrzeit – statt „Gleich dran: Aufstehen".
+  Widget _nightCard(ColorScheme cs) {
+    final n = DateTime.now();
+    final t = '${n.hour}:${n.minute.toString().padLeft(2, '0')}';
+    return Semantics(container: true, label: 'Es ist Nacht, $t Uhr. Du kannst weiterschlafen.',
+      child: Container(
+        width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+        decoration: BoxDecoration(color: const Color(0xFF1F2A44), borderRadius: BorderRadius.circular(32),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(.12), blurRadius: 30)]),
+        child: ExcludeSemantics(child: Column(children: [
+          const Icon(Icons.bedtime_rounded, size: 84, color: Color(0xFFFFE08A)),
+          const SizedBox(height: 16),
+          const Text('Es ist Nacht.', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: Colors.white)),
+          const SizedBox(height: 6),
+          const Text('Du kannst weiterschlafen.', style: TextStyle(fontSize: 20, color: Colors.white70)),
+          const SizedBox(height: 14),
+          Text('$t Uhr', style: const TextStyle(fontSize: 18, color: Colors.white60)),
+        ])),
+      ));
+  }
 
   Widget _nextRow(BuildContext c, AppState st, Activity n, ColorScheme cs) {
     final mins = st.minutesUntil(n);
@@ -234,10 +264,11 @@ class _Greeting extends StatelessWidget {
 /// Maximal reduzierte Ansicht: nur die aktuelle Aufgabe, groß und ruhig.
 /// Keine Kopfzeile, keine Liste – ein Bild, ein Wort, ein Knopf.
 class _MinimalNow extends StatelessWidget {
-  const _MinimalNow({required this.st, required this.a, required this.done, this.next});
+  const _MinimalNow({required this.st, required this.a, required this.done, this.night = false, this.next});
   final AppState st;
   final Activity a;
   final bool done;
+  final bool night;
   final Activity? next;
 
   @override
@@ -245,12 +276,27 @@ class _MinimalNow extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final s = st.settings;
 
-    if (done) {
-      return SafeArea(child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.check_circle_rounded, size: 120, color: cs.primary),
-        const SizedBox(height: 20),
-        Text('Für heute geschafft', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: cs.onSurface)),
-      ])));
+    if (night || done) {
+      return SafeArea(child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+        child: Column(children: [
+          const Spacer(),
+          if (night) ...[
+            const Icon(Icons.bedtime_rounded, size: 120, color: Color(0xFF3F51B5)),
+            const SizedBox(height: 20),
+            Text('Es ist Nacht.', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: cs.onSurface)),
+            const SizedBox(height: 6),
+            Text('Du kannst weiterschlafen.', style: TextStyle(fontSize: 20, color: cs.onSurface.withOpacity(.6))),
+          ] else ...[
+            Icon(Icons.check_circle_rounded, size: 120, color: cs.primary),
+            const SizedBox(height: 20),
+            Text('Für heute geschafft', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: cs.onSurface)),
+          ],
+          const Spacer(),
+          if (s.showHelpButton) const HelpButton(large: true),
+          const SizedBox(height: 8),
+        ]),
+      ));
     }
 
     return SafeArea(child: Padding(
@@ -295,6 +341,7 @@ class _MinimalNow extends StatelessWidget {
           ]),
         )),
         const Spacer(),
+        if (s.showHelpButton) ...[const HelpButton(large: true), const SizedBox(height: 12)],
         if (next != null && s.showNext)
           Text('danach: ${next!.label}',
               style: TextStyle(fontSize: 16, color: cs.onSurface.withOpacity(.4))),

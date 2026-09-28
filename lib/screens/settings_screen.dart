@@ -8,6 +8,8 @@ import '../theme/app_theme.dart';
 import '../services/image_util.dart';
 import 'help_wizard.dart';
 import 'notif_setup.dart';
+import 'care_settings.dart';
+import '../models/models.dart';
 
 const String appVersion = '0.1 (Beta)';
 
@@ -102,6 +104,20 @@ class SettingsScreen extends StatelessWidget {
                 'die aktuelle Aufgabe – groß, ruhig, ohne Menüs. Betreuende erreichen die Einstellungen '
                 'oben rechts über das Zahnrad. Alle Pläne und Daten bleiben erhalten.',
                 style: TextStyle(fontSize: 13, height: 1.3, color: ink.withOpacity(.6)))),
+        ]),
+
+        _header('Betreuung', ink),
+        _card(cs, [
+          ListTile(contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.health_and_safety_outlined, color: cs.primary),
+            title: Text('Betreuung & Sicherheit', style: TextStyle(fontWeight: FontWeight.w600, color: ink)),
+            subtitle: Text(
+                '${kProfiles[s.profile] ?? 'Allgemein'} · Notfall ${s.hasEmergency ? '✓' : '–'} · '
+                'Sperre ${s.pin.isNotEmpty ? '✓' : '–'}',
+                style: TextStyle(fontSize: 12.5, color: ink.withOpacity(.55))),
+            trailing: Icon(Icons.chevron_right_rounded, color: ink.withOpacity(.5)),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CareSettingsScreen())),
+          ),
         ]),
 
         _header('Darstellung', ink),

@@ -121,3 +121,16 @@ flutter run -d chrome
   `adrian_abholen_de_f.mp3` / `_de_m.mp3` – ohne Klick in der App.
 - Datensicherheit: keine neuen Speicher-Schlüssel, neues Feld `discreet` mit Standard „aus" –
   bestehende Pläne, Kalender und Einstellungen bleiben unverändert (Test in widget_test.dart).
+
+
+## Betreuung & Sicherheit (28.9.)
+- **Personengruppe** (Einstellungen → Betreuung & Sicherheit): Allgemein / Kognitive
+  Beeinträchtigung / Autismus / Demenz. „Allgemein" = unverändertes UI.
+- **Hilfe-Knopf + Notfallpass** (nur bei Personengruppe + Telefonnummer): Anruf mit einem Tipp,
+  Notfallpass mit Name, Kontakt, Adresse/Medikamente/Allergien. Auch im begleiteten Modus.
+- **Nachtansicht** (21–6 Uhr, Personengruppen): „Es ist Nacht. Du kannst weiterschlafen."
+- **Autismus:** Vorwarnung 2 Min. vor jedem Wechsel (Vibration + „Gleich fertig").
+- **Medikamente/Tropfen/Insulin:** Nachfrage nach 15 Min., entfällt wenn abgehakt.
+- **Fix:** Erinnerungen rissen nach ~2–3 Tagen ab (Deckel 60) – jetzt Android 400, iOS 60.
+- **PIN-Sperre** für Bearbeiten & Einstellungen (10 Min. offen, „PIN vergessen" ohne Datenverlust).
+- **Sicherung** als Text (kopieren/einfügen), wird vor dem Einspielen vollständig geprüft.

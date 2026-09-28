@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -73,39 +73,54 @@ class NotificationService {
   }
 
   /// Plant die nächsten 7 Tage vor – je Datum mit dem passenden Wochentagsplan.
-  /// Deckelt die Anzahl (iOS erlaubt max. 64 offene Benachrichtigungen).
-  Future<void> scheduleWeek(Map<int, List<Activity>> week, {bool silent = false}) async {
+  /// iOS erlaubt max. 64 offene Benachrichtigungen, Android deutlich mehr –
+  /// daher je Plattform ein eigener Deckel (sonst reißen Erinnerungen nach
+  /// 2–3 Tagen ab, wenn die App nicht geöffnet wird).
+  /// Bei Medikamenten kommt nach [followUpMin] Minuten eine Nachfrage –
+  /// außer der Schritt ist heute schon als erledigt markiert ([doneToday]).
+  Future<void> scheduleWeek(Map<int, List<Activity>> week,
+      {bool silent = false, Set<String> doneToday = const {}, int followUpMin = 15}) async {
     if (kIsWeb) return; // Browser kann keine Termine im Voraus planen
     await init();
     await _plugin.cancelAll();
     final now = tz.TZDateTime.now(tz.local);
     int id = 1000;
     int count = 0;
-    const maxNotifs = 60;
+    final maxNotifs = defaultTargetPlatform == TargetPlatform.iOS ? 60 : 400;
     final details = _details(silent: silent);
+
+    Future<void> plan(int nid, String title, String body, tz.TZDateTime when) async {
+      try {
+        await _plugin.zonedSchedule(nid, title, body, when, details,
+            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime);
+        count++;
+      } catch (_) {
+        try {
+          await _plugin.zonedSchedule(nid, title, body, when, details,
+              androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+              uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime);
+          count++;
+        } catch (_) {}
+      }
+    }
+
     for (int offset = 0; offset < 7 && count < maxNotifs; offset++) {
       final date = now.add(Duration(days: offset));
-      final plan = week[date.weekday] ?? const <Activity>[];
-      for (final a in plan) {
+      final plan0 = week[date.weekday] ?? const <Activity>[];
+      for (final a in plan0) {
         if (count >= maxNotifs) break;
         final when = tz.TZDateTime(tz.local, date.year, date.month, date.day,
             a.startMinutes ~/ 60, a.startMinutes % 60);
-        if (!when.isAfter(now)) continue;
-        final nid = id++;
-        try {
-          await _plugin.zonedSchedule(nid, 'Jetzt: ${a.label}', 'Tippe, um die App zu öffnen.',
-              when, details,
-              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-              uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime);
-          count++;
-        } catch (_) {
-          try {
-            await _plugin.zonedSchedule(nid, 'Jetzt: ${a.label}', 'Tippe, um die App zu öffnen.',
-                when, details,
-                androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-                uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime);
-            count++;
-          } catch (_) {}
+        if (when.isAfter(now)) {
+          await plan(id++, 'Jetzt: ${a.label}', 'Tippe, um die App zu öffnen.', when);
+        }
+        if (a.needsFollowUp && count < maxNotifs && !(offset == 0 && doneToday.contains(a.id))) {
+          final f = when.add(Duration(minutes: followUpMin));
+          if (f.isAfter(now)) {
+            await plan(id++, 'Schon erledigt? ${a.label}',
+                'Bitte in der App als erledigt markieren.', f);
+          }
         }
       }
     }

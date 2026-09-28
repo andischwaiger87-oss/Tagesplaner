@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:vibration/vibration.dart';
@@ -79,7 +80,14 @@ class AppState extends ChangeNotifier {
   bool isDone(String id) => _done.contains(id);
   int get doneCount { _ensureDoneDate(); return _today.where((a) => _done.contains(a.id)).length; }
   int get totalToday => _today.length;
-  void toggleDone(String id) { _ensureDoneDate(); if (_done.contains(id)) { _done.remove(id); } else { _done.add(id); } _storage.saveDone(_doneDate, _done); notifyListeners(); }
+  void toggleDone(String id) {
+    _ensureDoneDate();
+    if (_done.contains(id)) { _done.remove(id); } else { _done.add(id); }
+    _storage.saveDone(_doneDate, _done);
+    notifyListeners();
+    // Nachfrage bei Medikamenten entfällt, sobald erledigt (bzw. kommt wieder)
+    if (_today.any((a) => a.id == id && a.needsFollowUp)) _reschedule();
+  }
 
   void _recompute({bool announce = true}) {
     _ensureDoneDate();
@@ -105,8 +113,13 @@ class AppState extends ChangeNotifier {
     final changed = idx != currentIndex || active != isActive || ds != dayState;
     currentIndex = idx; isActive = active; dayState = ds;
     if (announce && active && p[idx].id != _lastAnnouncedId) { _lastAnnouncedId = p[idx].id; _onActivityStart(p[idx]); }
-    if (changed || active) notifyListeners();
+    if (announce) _checkTransitionWarning(p, active ? idx : null, now);
+    if (announce) _checkFollowUps(p, now);
+    final night = isNight;
+    final nightChanged = night != _wasNight; _wasNight = night;
+    if (changed || active || nightChanged) notifyListeners();
   }
+  bool _wasNight = false;
 
   Future<void> _onActivityStart(Activity a) async {
     // Im Browser gibt es keine geplanten Erinnerungen -> jetzt direkt melden.
@@ -119,6 +132,49 @@ class AppState extends ChangeNotifier {
     // Diskretionsmodus: keine automatische Sprachausgabe (Vorlesen per Knopf geht weiterhin).
     if (settings.discreet) return;
     await media.speakActivity(a, settings);
+  }
+
+  // ---- Autismus: Vorwarnung vor dem Wechsel ----
+  String? _lastWarnedId;
+  void _checkTransitionWarning(List<Activity> p, int? activeIdx, double now) {
+    if (settings.profile != 'autismus' || activeIdx == null) return;
+    final a = p[activeIdx];
+    if (a.durationMin < 6 || a.id == _lastWarnedId) return;
+    final left = a.startMinutes + a.durationMin - now;
+    if (left > 0 && left <= 2) {
+      _lastWarnedId = a.id;
+      if (settings.vibrate) {
+        try { Vibration.hasVibrator().then((v) { if (v == true) Vibration.vibrate(duration: 120); }); } catch (_) {}
+      }
+      if (!settings.discreet) {
+        media.speakActivity(Activity(id: 'warn', key: 'gleich_fertig', label: 'Gleich fertig',
+            spoken: 'Gleich ist diese Aufgabe fertig.'), settings);
+      }
+    }
+  }
+
+  // ---- Medikamente: Nachfrage, solange die App offen ist (Web) ----
+  final Set<String> _followedUp = {};
+  void _checkFollowUps(List<Activity> p, double now) {
+    if (!kIsWeb) return; // native App: geplante Benachrichtigung übernimmt das
+    for (final a in p) {
+      if (!a.needsFollowUp || _done.contains(a.id)) continue;
+      final t = a.startMinutes + 15;
+      final key = '$_doneDate/${a.id}';
+      if (now >= t && now < t + 1 && !_followedUp.contains(key)) {
+        _followedUp.add(key);
+        try { _notif.showNow('Schon erledigt? ${a.label}', 'Bitte in der App als erledigt markieren.',
+            silent: settings.discreet); } catch (_) {}
+      }
+    }
+  }
+
+  /// Nachtansicht: für unterstützte Personengruppen zwischen 21 und 6 Uhr,
+  /// wenn gerade kein Schritt läuft.
+  bool get isNight {
+    if (!settings.supported || isActive) return false;
+    final h = DateTime.now().hour;
+    return h >= 21 || h < 6;
   }
 
   Activity get current {
@@ -142,7 +198,10 @@ class AppState extends ChangeNotifier {
 
   String? lastScheduleError; // für die Diagnose sichtbar
   Future<void> _reschedule() async {
-    try { await _notif.scheduleWeek(week, silent: settings.discreet); lastScheduleError = null; }
+    try {
+      await _notif.scheduleWeek(week, silent: settings.discreet, doneToday: Set<String>.from(_done));
+      lastScheduleError = null;
+    }
     catch (e) { lastScheduleError = '$e'; }
   }
 
@@ -428,6 +487,59 @@ class AppState extends ChangeNotifier {
   Future<bool> sendTestReminder() async {
     try { return await _notif.showNow('Test-Erinnerung', 'Super! Genau so meldet sich die App.'); }
     catch (_) { return false; }
+  }
+
+  // ---- Sperre (PIN) für Bearbeiten & Einstellungen ----
+  DateTime? _unlockedUntil;
+  bool get locked => settings.pin.isNotEmpty &&
+      (_unlockedUntil == null || DateTime.now().isAfter(_unlockedUntil!));
+  bool unlock(String pin) {
+    if (pin.trim() != settings.pin) return false;
+    _unlockedUntil = DateTime.now().add(const Duration(minutes: 10));
+    return true;
+  }
+  void lockNow() { _unlockedUntil = null; }
+  void setPin(String pin) {
+    settings.pin = pin;
+    _unlockedUntil = pin.isEmpty ? null : DateTime.now().add(const Duration(minutes: 10));
+    _storage.saveSettings(settings); notifyListeners();
+  }
+
+  // ---- Sicherung: Pläne & Einstellungen als Text (ohne Bilder) ----
+  String exportBackup() {
+    final st = settings.toJson()..remove('avatarUser')..remove('avatarF')..remove('avatarM');
+    return jsonEncode({
+      'app': 'tagesbegleiter', 'v': 1,
+      'created': DateTime.now().toIso8601String(),
+      'week': {for (final e in week.entries) '${e.key}': e.value.map((a) => a.toJson()).toList()},
+      'settings': st,
+    });
+  }
+
+  /// Übernimmt eine Sicherung. Wird erst vollständig geprüft – bei Fehlern
+  /// bleibt alles unverändert. Profilbilder bleiben erhalten.
+  String? importBackup(String raw) {
+    try {
+      final m = jsonDecode(raw.trim()) as Map<String, dynamic>;
+      if (m['app'] != 'tagesbegleiter') return 'Das ist keine Tagesbegleiter-Sicherung.';
+      final w = m['week'] as Map<String, dynamic>;
+      final nw = <int, List<Activity>>{};
+      for (int d = 1; d <= 7; d++) {
+        final l = w['$d'];
+        if (l is! List) return 'Die Sicherung ist unvollständig.';
+        nw[d] = [for (final e in l) Activity.fromJson(Map<String, dynamic>.from(e as Map))]
+          ..sort((a, b) => a.startMinutes.compareTo(b.startMinutes));
+      }
+      final sj = Map<String, dynamic>.from(m['settings'] as Map);
+      sj['avatarUser'] = settings.avatarUser; sj['avatarF'] = settings.avatarF; sj['avatarM'] = settings.avatarM;
+      final ns = AppSettings.fromJson(sj);
+      week = nw; settings = ns;
+      _storage.saveWeek(week); _storage.saveSettings(settings);
+      _recompute(announce: false); notifyListeners(); _reschedule();
+      return null;
+    } catch (_) {
+      return 'Die Sicherung konnte nicht gelesen werden.';
+    }
   }
 
   void updateSettings(void Function(AppSettings) f) {

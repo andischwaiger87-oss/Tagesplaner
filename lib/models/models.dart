@@ -26,6 +26,13 @@ class Activity {
   /// Namen ab („Adrian abholen" -> adrian_abholen).
   String get lookupKey => key ?? slugify(label);
 
+  /// Medikamente & Co.: Die App fragt nach, ob es erledigt wurde.
+  bool get needsFollowUp {
+    if (kFollowUpKeys.contains(lookupKey)) return true;
+    final l = label.toLowerCase();
+    return l.contains('medikament') || l.contains('tablette') || l.contains('insulin');
+  }
+
   bool get iconIsAsset => iconPath != null && iconPath!.startsWith('assets/');
   bool get audioIsAsset => audioPath != null && audioPath!.startsWith('assets/');
 
@@ -83,6 +90,11 @@ class AppSettings {
   bool minimalUI;
   String fontFamily;
   bool discreet;     // Diskretionsmodus: keine automatische Sprachausgabe, leise Erinnerungen
+  String profile;    // Personengruppe: allgemein | kognitiv | autismus | demenz
+  String emergencyName;  // Notfall: Kontaktperson
+  String emergencyPhone; // Notfall: Telefonnummer
+  String emergencyInfo;  // Notfallpass: Adresse, Medikamente, Allergien …
+  String pin;        // Sperre für Bearbeiten & Einstellungen ('' = keine)
 
   AppSettings({
     this.name = '', this.voice = 'f', this.highContrast = false,
@@ -93,7 +105,16 @@ class AppSettings {
     this.minimalUI = false,
     this.fontFamily = 'Lexend',
     this.discreet = false,
+    this.profile = 'allgemein',
+    this.emergencyName = '', this.emergencyPhone = '', this.emergencyInfo = '',
+    this.pin = '',
   });
+
+  /// Personengruppe mit angepasster Oberfläche (Hilfe-Knopf, Nachtansicht …)
+  bool get supported => profile != 'allgemein';
+  bool get hasEmergency => emergencyPhone.trim().isNotEmpty;
+  /// Hilfe-Knopf nur bei gewählter Personengruppe und eingetragener Nummer.
+  bool get showHelpButton => supported && hasEmergency;
 
   Map<String, dynamic> toJson() => {
         'name': name, 'voice': voice, 'highContrast': highContrast,
@@ -104,6 +125,10 @@ class AppSettings {
         'minimalUI': minimalUI,
         'fontFamily': fontFamily,
         'discreet': discreet,
+        'profile': profile,
+        'emergencyName': emergencyName, 'emergencyPhone': emergencyPhone,
+        'emergencyInfo': emergencyInfo,
+        'pin': pin,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> j) => AppSettings(
@@ -118,5 +143,21 @@ class AppSettings {
         minimalUI: j['minimalUI'] ?? false,
         fontFamily: j['fontFamily'] ?? 'Lexend',
         discreet: j['discreet'] ?? false,
+        profile: j['profile'] ?? 'allgemein',
+        emergencyName: j['emergencyName'] ?? '',
+        emergencyPhone: j['emergencyPhone'] ?? '',
+        emergencyInfo: j['emergencyInfo'] ?? '',
+        pin: j['pin'] ?? '',
       );
 }
+
+/// Personengruppen – bestimmen, welche Hilfen die Oberfläche zusätzlich zeigt.
+const Map<String, String> kProfiles = {
+  'allgemein': 'Allgemein',
+  'kognitiv': 'Kognitive Beeinträchtigung',
+  'autismus': 'Autismus',
+  'demenz': 'Demenz',
+};
+
+/// Bausteine, bei denen die App nachfragt, ob sie erledigt wurden.
+const Set<String> kFollowUpKeys = {'medikament', 'tropfen', 'insulin'};
