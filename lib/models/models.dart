@@ -155,6 +155,7 @@ class AppSettings {
 const Map<String, String> kProfiles = {
   'allgemein': 'Allgemein',
   'kognitiv': 'Kognitive Beeinträchtigung',
+  'ads': 'ADS (ohne Hyperaktivität)',
   'autismus': 'Autismus',
   'demenz': 'Demenz',
 };

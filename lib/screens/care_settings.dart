@@ -13,6 +13,7 @@ class CareSettingsScreen extends StatelessWidget {
   static const _profileInfo = {
     'allgemein': 'Die gewohnte Ansicht – ohne Zusätze.',
     'kognitiv': 'Hilfe-Knopf und ruhige Nachtansicht.',
+    'ads': 'Hilfe-Knopf und eine Erinnerung 5 Minuten vor jedem Wechsel („Noch 5 Minuten").',
     'autismus': 'Hilfe-Knopf, Nachtansicht und eine Vorwarnung 2 Minuten vor jedem Wechsel.',
     'demenz': 'Hilfe-Knopf und ruhige Nachtansicht („Es ist Nacht. Du kannst weiterschlafen.").',
   };

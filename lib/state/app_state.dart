@@ -134,21 +134,28 @@ class AppState extends ChangeNotifier {
     await media.speakActivity(a, settings);
   }
 
-  // ---- Autismus: Vorwarnung vor dem Wechsel ----
+  // ---- Vorwarnung vor dem Wechsel ----
+  // Autismus: 2 Min. vorher „Gleich fertig". ADS: 5 Min. vorher „Noch 5 Minuten"
+  // (hilft gegen das Verlieren des Zeitgefühls).
   String? _lastWarnedId;
   void _checkTransitionWarning(List<Activity> p, int? activeIdx, double now) {
-    if (settings.profile != 'autismus' || activeIdx == null) return;
+    final ads = settings.profile == 'ads';
+    if ((settings.profile != 'autismus' && !ads) || activeIdx == null) return;
     final a = p[activeIdx];
-    if (a.durationMin < 6 || a.id == _lastWarnedId) return;
+    final lead = ads ? 5 : 2;
+    if (a.durationMin < lead * 3 || a.id == _lastWarnedId) return;
     final left = a.startMinutes + a.durationMin - now;
-    if (left > 0 && left <= 2) {
+    if (left > 0 && left <= lead) {
       _lastWarnedId = a.id;
       if (settings.vibrate) {
         try { Vibration.hasVibrator().then((v) { if (v == true) Vibration.vibrate(duration: 120); }); } catch (_) {}
       }
       if (!settings.discreet) {
-        media.speakActivity(Activity(id: 'warn', key: 'gleich_fertig', label: 'Gleich fertig',
-            spoken: 'Gleich ist diese Aufgabe fertig.'), settings);
+        media.speakActivity(ads
+            ? Activity(id: 'warn', key: 'noch_fuenf_minuten', label: 'Noch 5 Minuten',
+                spoken: 'Noch fünf Minuten. Dann kommt etwas Neues.')
+            : Activity(id: 'warn', key: 'gleich_fertig', label: 'Gleich fertig',
+                spoken: 'Gleich ist diese Aufgabe fertig.'), settings);
       }
     }
   }
@@ -172,7 +179,7 @@ class AppState extends ChangeNotifier {
   /// Nachtansicht: für unterstützte Personengruppen zwischen 21 und 6 Uhr,
   /// wenn gerade kein Schritt läuft.
   bool get isNight {
-    if (!settings.supported || isActive) return false;
+    if (!settings.supported || settings.profile == 'ads' || isActive) return false;
     final h = DateTime.now().hour;
     return h >= 21 || h < 6;
   }
