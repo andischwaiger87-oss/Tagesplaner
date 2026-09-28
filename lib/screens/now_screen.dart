@@ -42,33 +42,6 @@ class NowScreen extends StatelessWidget {
                 maxLines: 1, overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 16, color: cs.onSurface.withOpacity(.6))),
           ])),
-          // Schnellschalter Diskretionsmodus (unterwegs ohne Umweg über die Einstellungen)
-          Semantics(button: true,
-            label: s.discreet ? 'Diskretionsmodus ist an. Tippen zum Ausschalten.' : 'Diskretionsmodus einschalten',
-            child: InkWell(
-              onTap: () {
-                final on = !s.discreet;
-                st.setDiscreet(on);
-                ScaffoldMessenger.of(context)
-                  ..clearSnackBars()
-                  ..showSnackBar(SnackBar(
-                    content: Text(on ? 'Diskret: keine Sprachausgabe' : 'Sprachausgabe wieder an'),
-                    duration: const Duration(milliseconds: 1400),
-                    behavior: SnackBarBehavior.floating));
-              },
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                padding: const EdgeInsets.all(9),
-                decoration: BoxDecoration(
-                  color: s.discreet ? kAccent.withOpacity(.14) : cs.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(.05), blurRadius: 10)]),
-                child: Icon(s.discreet ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                    size: 18, color: s.discreet ? kAccent : cs.primary),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
           InkWell(
             onTap: () => st.goTab(1),
             borderRadius: BorderRadius.circular(14),
