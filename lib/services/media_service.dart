@@ -20,21 +20,18 @@ class MediaService {
 
   Future<void> speakActivity(Activity a, AppSettings s) async {
     await stop();
-    // 1) Eigene zugewiesene Datei (nur Gerätedatei)
+    // 1) Eigene zugewiesene Datei vom Gerät
     if (a.audioPath != null && a.audioPath!.isNotEmpty && !a.audioIsAsset) {
       try { await _player.play(DeviceFileSource(a.audioPath!), volume: s.volume); return; } catch (_) {}
     }
-    // 2) Sprachdatei über den Schlüssel (Frau = de_f, Mann = de_m) – als Bytes, web-sicher
-    final assetPath = AssetCatalog.audioForKey(a.key, s.voice)
-        ?? (a.audioIsAsset ? a.audioPath : null);
+    // 2) Zugewiesene Sprachdatei aus assets/audio (passend zur Stimme)
+    //    3) sonst automatisch über den Schlüssel bzw. den Namen des Eintrags
+    final assetPath = (a.audioIsAsset ? AssetCatalog.voiceAware(a.audioPath!, s.voice) : null)
+        ?? AssetCatalog.audioForKey(a.lookupKey, s.voice);
     if (assetPath != null) {
-      try {
-        final data = await rootBundle.load(assetPath);
-        await _player.play(BytesSource(data.buffer.asUint8List()), volume: s.volume);
-        return;
-      } catch (_) {}
+      if (await playAsset(assetPath, s.volume)) return;
     }
-    // 3) Rückfall: geräteeigene Stimme (im Web bewusst KEINE Roboterstimme)
+    // 4) Rückfall: geräteeigene Stimme (im Web bewusst KEINE Roboterstimme)
     if (kIsWeb) return;
     if (!_ttsReady) await _initTts(s.voice, s.volume);
     await _tts.setVolume(s.volume);
@@ -42,6 +39,18 @@ class MediaService {
     final text = (a.spoken != null && a.spoken!.isNotEmpty)
         ? a.spoken! : 'Jetzt ist es Zeit für ${a.label}.';
     await _tts.speak(text);
+  }
+
+  /// Spielt eine gebündelte Sprachdatei ab (als Bytes, web-sicher).
+  Future<bool> playAsset(String assetPath, double volume) async {
+    try {
+      await stop();
+      final data = await rootBundle.load(assetPath);
+      await _player.play(BytesSource(data.buffer.asUint8List()), volume: volume);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> stop() async {

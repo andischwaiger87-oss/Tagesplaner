@@ -39,4 +39,25 @@ void main() {
     expect(r.durationMin, 20);
     expect(r.timeLabel, '8:00');
   });
+
+  test('Diskretionsmodus: Roundtrip + alte Einstellungen bleiben erhalten', () {
+    final s = AppSettings(name: 'Andi', discreet: true);
+    expect(AppSettings.fromJson(s.toJson()).discreet, true);
+    // Gespeicherte Einstellungen aus älteren Versionen (ohne das neue Feld)
+    final old = {'name': 'Andi', 'voice': 'm', 'themeIndex': 3, 'minimalUI': true};
+    final r = AppSettings.fromJson(old);
+    expect(r.discreet, false);
+    expect(r.name, 'Andi');
+    expect(r.voice, 'm');
+    expect(r.themeIndex, 3);
+    expect(r.minimalUI, true);
+  });
+
+  test('Automatische Zuordnung eigener Einträge über den Namen', () {
+    expect(slugify('Adrian abholen'), 'adrian_abholen');
+    expect(slugify('Zähne putzen'), 'zaehne_putzen');
+    expect(slugify('  Große Pause! '), 'grosse_pause');
+    expect(Activity(id: 'c1', label: 'Adrian abholen').lookupKey, 'adrian_abholen');
+    expect(Activity(id: 'x', key: 'kochen', label: 'Mein Kochen').lookupKey, 'kochen');
+  });
 }

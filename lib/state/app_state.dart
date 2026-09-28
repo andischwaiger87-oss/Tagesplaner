@@ -111,11 +111,13 @@ class AppState extends ChangeNotifier {
   Future<void> _onActivityStart(Activity a) async {
     // Im Browser gibt es keine geplanten Erinnerungen -> jetzt direkt melden.
     if (kIsWeb) {
-      try { await _notif.showNow('Jetzt: ${a.label}', 'Tippe, um die App zu öffnen.'); } catch (_) {}
+      try { await _notif.showNow('Jetzt: ${a.label}', 'Tippe, um die App zu öffnen.', silent: settings.discreet); } catch (_) {}
     }
     if (settings.vibrate) {
       try { if (await Vibration.hasVibrator() ?? false) Vibration.vibrate(duration: 200); } catch (_) {}
     }
+    // Diskretionsmodus: keine automatische Sprachausgabe (Vorlesen per Knopf geht weiterhin).
+    if (settings.discreet) return;
     await media.speakActivity(a, settings);
   }
 
@@ -140,7 +142,7 @@ class AppState extends ChangeNotifier {
 
   String? lastScheduleError; // für die Diagnose sichtbar
   Future<void> _reschedule() async {
-    try { await _notif.scheduleWeek(week); lastScheduleError = null; }
+    try { await _notif.scheduleWeek(week, silent: settings.discreet); lastScheduleError = null; }
     catch (e) { lastScheduleError = '$e'; }
   }
 
@@ -357,8 +359,42 @@ class AppState extends ChangeNotifier {
     return true;
   }
 
-  void setIcon(int i, String path) { week[editingDay]![i].iconPath = path; _storage.saveWeek(week); notifyListeners(); }
-  void setAudio(int i, String path) { week[editingDay]![i].audioPath = path; _storage.saveWeek(week); notifyListeners(); }
+  /// Alle eigenen Einträge mit gleichem Namen (über die ganze Woche) –
+  /// damit z. B. „Adrian abholen" an jedem Tag dasselbe Icon bekommt.
+  Iterable<Activity> _sameCustom(Activity a) sync* {
+    final l = a.label.trim().toLowerCase();
+    for (final list in week.values) {
+      for (final x in list) {
+        if (identical(x, a) || (a.key == null && x.key == null && x.label.trim().toLowerCase() == l)) yield x;
+      }
+    }
+  }
+
+  /// Weist ein Icon zu (Asset-Pfad oder Gerätedatei). null = automatisch nach Name.
+  void setIcon(int i, String? path) {
+    final a = week[editingDay]![i];
+    for (final x in _sameCustom(a)) { x.iconPath = path; }
+    _storage.saveWeek(week); notifyListeners();
+  }
+
+  /// Weist eine Sprachdatei zu (Asset-Pfad oder Gerätedatei). null = automatisch nach Name.
+  void setAudio(int i, String? path) {
+    final a = week[editingDay]![i];
+    for (final x in _sameCustom(a)) { x.audioPath = path; }
+    _storage.saveWeek(week); notifyListeners();
+  }
+
+  /// Hörprobe einer Sprachdatei aus assets/audio (auch im Diskretionsmodus – bewusst ausgelöst).
+  Future<void> previewAudio(String assetPath) => media.playAsset(assetPath, settings.volume);
+
+  /// Diskretionsmodus: keine automatische Sprachausgabe, lautlose Erinnerungen.
+  void setDiscreet(bool on) {
+    settings.discreet = on;
+    _storage.saveSettings(settings);
+    if (on) { try { media.stop(); } catch (_) {} }
+    notifyListeners();
+    _reschedule(); // bereits geplante Erinnerungen auf leise/laut umstellen
+  }
 
   // Plan des aktuellen Tages auf andere Tage kopieren
   void copyEditTo(List<int> days) {

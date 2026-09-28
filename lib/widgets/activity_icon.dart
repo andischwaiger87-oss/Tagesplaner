@@ -23,7 +23,9 @@ class ActivityIcon extends StatelessWidget {
         if (w != null) return w;
       }
     }
-    final byKey = AssetCatalog.iconForKey(activity.key);
+    // Baustein-Schlüssel – bei eigenen Einträgen automatisch aus dem Namen
+    // (z. B. Adrian abholen -> assets/icons/adrian_abholen.svg).
+    final byKey = AssetCatalog.iconForKey(activity.lookupKey);
     if (byKey != null) return SvgPicture.asset(byKey, width: size, height: size);
     return SvgPicture.asset('assets/icons/placeholder.svg', width: size, height: size);
   }

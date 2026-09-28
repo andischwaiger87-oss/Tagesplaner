@@ -68,6 +68,19 @@ class SettingsScreen extends StatelessWidget {
           ]),
         ]),
 
+        _header('Diskretionsmodus', ink),
+        _card(cs, [
+          _row('Unterwegs leise', ink, Switch(value: s.discreet, onChanged: (v) {
+            st.setDiscreet(v);
+            _toast(context, v ? 'Diskretionsmodus an – keine Sprachausgabe' : 'Diskretionsmodus aus – Sprachausgabe an');
+          })),
+          Padding(padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+            child: Text('Die App spricht nicht mehr von selbst und Erinnerungen kommen ohne Ton – '
+                'nur mit Vibration und Anzeige. „Vorlesen" per Knopfdruck funktioniert weiterhin. '
+                'Pläne und Einstellungen bleiben unverändert.',
+                style: TextStyle(fontSize: 13, height: 1.3, color: ink.withOpacity(.6)))),
+        ]),
+
         _header('Erinnerungen', ink),
         _card(cs, [
           ListTile(contentPadding: EdgeInsets.zero,

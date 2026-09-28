@@ -109,3 +109,15 @@ flutter run -d chrome
   Theme-/Balken-Animationen aus, MediaQuery.disableAnimations gesetzt.
 - Erste automatisierte Tests (test/widget_test.dart): Zeit-Formatierung + JSON-Roundtrips.
   Ausführen mit: flutter test
+
+
+## Diskretionsmodus & eigene Icons/Sprachdateien (28.9.)
+- **Diskretionsmodus** (Einstellungen → „Unterwegs leise" + Schnellschalter 🔈 auf „Jetzt"):
+  keine automatische Sprachausgabe, Erinnerungen lautlos (eigener Android-Kanal `jetzt_leise`,
+  iOS ohne Ton, Browser `silent`). Vibration bleibt. „Vorlesen" per Knopf funktioniert weiterhin.
+- **Eigene Einträge: Icon & Sprachdatei aus `assets/`** – Auswahl-Fenster mit Suche,
+  Hörprobe, „Automatisch" und „Vom Gerät" (nur App). Gilt für alle gleichnamigen Einträge der Woche.
+- **Automatische Zuordnung nach Name**: „Adrian abholen" → `adrian_abholen.svg`,
+  `adrian_abholen_de_f.mp3` / `_de_m.mp3` – ohne Klick in der App.
+- Datensicherheit: keine neuen Speicher-Schlüssel, neues Feld `discreet` mit Standard „aus" –
+  bestehende Pläne, Kalender und Einstellungen bleiben unverändert (Test in widget_test.dart).

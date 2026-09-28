@@ -21,6 +21,11 @@ class Activity {
     this.durationMin = 10,
   });
 
+  /// Schlüssel für die automatische Zuordnung von Icon & Sprachdatei.
+  /// Bausteine haben einen festen [key]; eigene Einträge leiten ihn aus dem
+  /// Namen ab („Adrian abholen" -> adrian_abholen).
+  String get lookupKey => key ?? slugify(label);
+
   bool get iconIsAsset => iconPath != null && iconPath!.startsWith('assets/');
   bool get audioIsAsset => audioPath != null && audioPath!.startsWith('assets/');
 
@@ -50,6 +55,16 @@ class Activity {
   Activity copy() => Activity.fromJson(toJson());
 }
 
+/// Macht aus einem Namen einen Dateinamen-Schlüssel:
+/// „Adrian abholen" -> adrian_abholen, „Zähne putzen" -> zaehne_putzen.
+String slugify(String s) {
+  var t = s.trim().toLowerCase()
+      .replaceAll('ä', 'ae').replaceAll('ö', 'oe').replaceAll('ü', 'ue').replaceAll('ß', 'ss');
+  t = t.replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+  t = t.replaceAll(RegExp(r'^_+|_+$'), '');
+  return t;
+}
+
 class AppSettings {
   String name;
   String voice;      // 'f' oder 'm'
@@ -67,6 +82,7 @@ class AppSettings {
   bool onboardingDone;
   bool minimalUI;
   String fontFamily;
+  bool discreet;     // Diskretionsmodus: keine automatische Sprachausgabe, leise Erinnerungen
 
   AppSettings({
     this.name = '', this.voice = 'f', this.highContrast = false,
@@ -76,6 +92,7 @@ class AppSettings {
     this.onboardingDone = false,
     this.minimalUI = false,
     this.fontFamily = 'Lexend',
+    this.discreet = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -86,6 +103,7 @@ class AppSettings {
         'onboardingDone': onboardingDone,
         'minimalUI': minimalUI,
         'fontFamily': fontFamily,
+        'discreet': discreet,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> j) => AppSettings(
@@ -99,5 +117,6 @@ class AppSettings {
         onboardingDone: j['onboardingDone'] ?? false,
         minimalUI: j['minimalUI'] ?? false,
         fontFamily: j['fontFamily'] ?? 'Lexend',
+        discreet: j['discreet'] ?? false,
       );
 }

@@ -15,9 +15,19 @@ Future<String> requestWebNotificationPermission() async {
   }
 }
 
-Future<bool> showWebNotification(String title, String body) async {
+Future<bool> showWebNotification(String title, String body, {bool silent = false}) async {
   if (!html.Notification.supported) return false;
   if (html.Notification.permission != 'granted') return false;
+  if (silent) {
+    // Diskret: lautlose Browser-Benachrichtigung (Option "silent").
+    try {
+      js.JsObject(js.context['Notification'] as js.JsFunction, [
+        title,
+        js.JsObject.jsify({'body': body, 'icon': 'icons/Icon-192.png', 'silent': true}),
+      ]);
+      return true;
+    } catch (_) {/* Rückfall unten */}
+  }
   try {
     html.Notification(title, body: body, icon: 'icons/Icon-192.png');
     return true;

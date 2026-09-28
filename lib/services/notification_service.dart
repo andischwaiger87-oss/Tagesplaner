@@ -44,25 +44,37 @@ class NotificationService {
     return (ok ?? iosOk ?? true);
   }
 
-  NotificationDetails get _details => const NotificationDetails(
-        android: AndroidNotificationDetails('jetzt', 'Aktuelle Aktivität',
-            channelDescription: 'Meldet, wenn ein neuer Schritt beginnt',
-            importance: Importance.max, priority: Priority.high,
-            fullScreenIntent: true, category: AndroidNotificationCategory.alarm),
-        iOS: DarwinNotificationDetails(interruptionLevel: InterruptionLevel.timeSensitive),
-      );
+  /// Normal: mit Ton. Diskret: eigener, lautloser Kanal (nur Vibration/Anzeige).
+  /// Android-Kanäle sind nach dem Anlegen unveränderlich – daher zwei Kanäle.
+  NotificationDetails _details({bool silent = false}) => silent
+      ? const NotificationDetails(
+          android: AndroidNotificationDetails('jetzt_leise', 'Aktuelle Aktivität (diskret)',
+              channelDescription: 'Meldet neue Schritte ohne Ton (Diskretionsmodus)',
+              importance: Importance.high, priority: Priority.high,
+              playSound: false, enableVibration: true,
+              category: AndroidNotificationCategory.reminder),
+          iOS: DarwinNotificationDetails(presentSound: false,
+              interruptionLevel: InterruptionLevel.timeSensitive),
+        )
+      : const NotificationDetails(
+          android: AndroidNotificationDetails('jetzt', 'Aktuelle Aktivität',
+              channelDescription: 'Meldet, wenn ein neuer Schritt beginnt',
+              importance: Importance.max, priority: Priority.high,
+              fullScreenIntent: true, category: AndroidNotificationCategory.alarm),
+          iOS: DarwinNotificationDetails(interruptionLevel: InterruptionLevel.timeSensitive),
+        );
 
   /// Zeigt sofort eine Benachrichtigung. Gibt zurück, ob es geklappt hat.
-  Future<bool> showNow(String title, String body) async {
-    if (kIsWeb) return webn.showWebNotification(title, body);
+  Future<bool> showNow(String title, String body, {bool silent = false}) async {
+    if (kIsWeb) return webn.showWebNotification(title, body, silent: silent);
     await init();
-    await _plugin.show(0, title, body, _details);
+    await _plugin.show(0, title, body, _details(silent: silent));
     return true;
   }
 
   /// Plant die nächsten 7 Tage vor – je Datum mit dem passenden Wochentagsplan.
   /// Deckelt die Anzahl (iOS erlaubt max. 64 offene Benachrichtigungen).
-  Future<void> scheduleWeek(Map<int, List<Activity>> week) async {
+  Future<void> scheduleWeek(Map<int, List<Activity>> week, {bool silent = false}) async {
     if (kIsWeb) return; // Browser kann keine Termine im Voraus planen
     await init();
     await _plugin.cancelAll();
@@ -70,6 +82,7 @@ class NotificationService {
     int id = 1000;
     int count = 0;
     const maxNotifs = 60;
+    final details = _details(silent: silent);
     for (int offset = 0; offset < 7 && count < maxNotifs; offset++) {
       final date = now.add(Duration(days: offset));
       final plan = week[date.weekday] ?? const <Activity>[];
@@ -81,14 +94,14 @@ class NotificationService {
         final nid = id++;
         try {
           await _plugin.zonedSchedule(nid, 'Jetzt: ${a.label}', 'Tippe, um die App zu öffnen.',
-              when, _details,
+              when, details,
               androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
               uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime);
           count++;
         } catch (_) {
           try {
             await _plugin.zonedSchedule(nid, 'Jetzt: ${a.label}', 'Tippe, um die App zu öffnen.',
-                when, _details,
+                when, details,
                 androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
                 uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime);
             count++;
@@ -136,14 +149,14 @@ class NotificationService {
     final when = tz.TZDateTime.now(tz.local).add(Duration(seconds: seconds));
     try {
       await _plugin.zonedSchedule(999, 'Test-Erinnerung',
-          'Wenn du das siehst, funktionieren die Erinnerungen.', when, _details,
+          'Wenn du das siehst, funktionieren die Erinnerungen.', when, _details(),
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
           uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime);
       return 'OK-EXAKT';
     } catch (e) {
       try {
         await _plugin.zonedSchedule(999, 'Test-Erinnerung',
-            'Wenn du das siehst, funktionieren die Erinnerungen.', when, _details,
+            'Wenn du das siehst, funktionieren die Erinnerungen.', when, _details(),
             androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
             uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime);
         return 'OK-UNGEFÄHR';

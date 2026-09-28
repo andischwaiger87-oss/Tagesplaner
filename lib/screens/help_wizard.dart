@@ -38,7 +38,7 @@ class _HelpWizardState extends State<HelpWizard> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) { _st = context.read<AppState>(); _speak(0); });
+    WidgetsBinding.instance.addPostFrameCallback((_) { _st = context.read<AppState>(); if (!_st!.settings.discreet) _speak(0); });
   }
 
   @override
@@ -55,7 +55,7 @@ class _HelpWizardState extends State<HelpWizard> {
       body: SafeArea(child: Column(children: [
         Expanded(child: PageView.builder(
           controller: _pc, itemCount: _steps.length,
-          onPageChanged: (i) { setState(() => _i = i); _speak(i); },
+          onPageChanged: (i) { setState(() => _i = i); if (!(_st ?? context.read<AppState>()).settings.discreet) { _speak(i); } else { _st?.media.stop(); } },
           itemBuilder: (c, i) {
             final s = _steps[i];
             return Padding(padding: const EdgeInsets.all(28),

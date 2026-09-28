@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../state/app_state.dart';
@@ -9,6 +11,7 @@ import '../data/default_data.dart';
 import '../theme/app_theme.dart';
 import '../widgets/activity_icon.dart';
 import '../util/format.dart';
+import '../services/asset_catalog.dart';
 
 // Kompakte Meldung – wird per eigenem Timer zuverlässig geschlossen
 // (unabhängig von Browser-/Plattform-Eigenheiten).
@@ -130,14 +133,51 @@ class EditorScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _pickFile(BuildContext c, AppState st, int i, bool icon) async {
+  Future<String?> _pickDeviceFile(bool icon) async {
     final res = await FilePicker.platform.pickFiles(
       type: FileType.custom, allowedExtensions: icon ? ['svg'] : ['mp3', 'wav', 'm4a']);
-    final p = res?.files.single.path;
-    if (p == null) return;
-    icon ? st.setIcon(i, p) : st.setAudio(i, p);
-    _snack(c, icon ? 'Icon zugewiesen' : 'Sprachdatei zugewiesen');
+    return res?.files.single.path;
   }
+
+  /// Icon für einen eigenen Eintrag: aus assets/icons, automatisch oder vom Gerät.
+  Future<void> _pickIcon(BuildContext c, AppState st, int i) async {
+    final a = st.plan[i];
+    final r = await showModalBottomSheet<String>(context: c, isScrollControlled: true, useSafeArea: true,
+      backgroundColor: Theme.of(c).colorScheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      builder: (_) => _IconPickerSheet(activity: a));
+    if (r == null || !c.mounted) return;
+    if (r == _kAuto) { st.setIcon(i, null); _snack(c, 'Icon: automatisch nach Name'); return; }
+    if (r == _kDevice) {
+      final p = await _pickDeviceFile(true);
+      if (p == null || !c.mounted) return;
+      st.setIcon(i, p); _snack(c, 'Icon zugewiesen'); return;
+    }
+    st.setIcon(i, r); _snack(c, 'Icon zugewiesen');
+  }
+
+  /// Sprachdatei für einen eigenen Eintrag: aus assets/audio, automatisch oder vom Gerät.
+  Future<void> _pickAudio(BuildContext c, AppState st, int i) async {
+    final a = st.plan[i];
+    final r = await showModalBottomSheet<String>(context: c, isScrollControlled: true, useSafeArea: true,
+      backgroundColor: Theme.of(c).colorScheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      builder: (_) => _AudioPickerSheet(st: st, activity: a));
+    try { st.media.stop(); } catch (_) {}
+    if (r == null || !c.mounted) return;
+    if (r == _kAuto) { st.setAudio(i, null); _snack(c, 'Sprachdatei: automatisch nach Name'); return; }
+    if (r == _kDevice) {
+      final p = await _pickDeviceFile(false);
+      if (p == null || !c.mounted) return;
+      st.setAudio(i, p); _snack(c, 'Sprachdatei zugewiesen'); return;
+    }
+    st.setAudio(i, r); _snack(c, 'Sprachdatei zugewiesen');
+  }
+
+  bool _hasIcon(Activity a) =>
+      (a.iconPath != null && a.iconPath!.isNotEmpty) || AssetCatalog.iconForKey(a.lookupKey) != null;
+  bool _hasAudio(Activity a, AppState st) =>
+      (a.audioPath != null && a.audioPath!.isNotEmpty) || AssetCatalog.audioForKey(a.lookupKey, st.settings.voice) != null;
 
   Widget _row(BuildContext c, AppState st, int i, ColorScheme cs) {
     final ink = cs.onSurface;
@@ -185,13 +225,13 @@ class EditorScreen extends StatelessWidget {
         ]),
         if (isCustom) Padding(padding: const EdgeInsets.only(top: 8),
           child: Row(children: [
-            Expanded(child: OutlinedButton.icon(onPressed: () => _pickFile(c, st, i, true),
+            Expanded(child: OutlinedButton.icon(onPressed: () => _pickIcon(c, st, i),
               icon: const Icon(Icons.image_outlined, size: 18),
-              label: Text(a.iconPath != null ? 'Icon ✓' : 'Eigenes Icon'))),
+              label: Text(_hasIcon(a) ? 'Icon ✓' : 'Eigenes Icon'))),
             const SizedBox(width: 8),
-            Expanded(child: OutlinedButton.icon(onPressed: () => _pickFile(c, st, i, false),
+            Expanded(child: OutlinedButton.icon(onPressed: () => _pickAudio(c, st, i),
               icon: const Icon(Icons.graphic_eq_rounded, size: 18),
-              label: Text(a.audioPath != null ? 'Audio ✓' : 'Eigene Stimme'))),
+              label: Text(_hasAudio(a, st) ? 'Audio ✓' : 'Eigene Stimme'))),
           ])),
       ]),
     );
@@ -366,6 +406,189 @@ class _AddSheetState extends State<_AddSheet> {
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)))),
         ]),
       ),
+    );
+  }
+}
+
+
+// ---------------------------------------------------------------------------
+// Auswahl eigener Icons & Sprachdateien (aus app/assets/icons bzw. app/assets/audio)
+// ---------------------------------------------------------------------------
+
+const String _kAuto = '__auto__';
+const String _kDevice = '__device__';
+
+String _niceName(String file) {
+  var n = file.split('/').last;
+  n = n.replaceFirst(RegExp(r'\.(svg|mp3|wav|m4a)$'), '');
+  n = n.replaceAll('_', ' ');
+  return n.isEmpty ? file : n[0].toUpperCase() + n.substring(1);
+}
+
+class _PickerHeader extends StatelessWidget {
+  final String title;
+  final String hint;
+  const _PickerHeader({required this.title, required this.hint});
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const SizedBox(height: 10),
+      Center(child: Container(width: 44, height: 5, decoration: BoxDecoration(
+          color: cs.onSurface.withOpacity(.2), borderRadius: BorderRadius.circular(3)))),
+      Padding(padding: const EdgeInsets.fromLTRB(16, 10, 8, 0),
+        child: Row(children: [
+          Expanded(child: Text(title,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: cs.onSurface))),
+          IconButton(onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close_rounded), tooltip: 'Schließen'),
+        ])),
+      Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: Text(hint, style: TextStyle(fontSize: 12.5, color: cs.onSurface.withOpacity(.55)))),
+    ]);
+  }
+}
+
+class _IconPickerSheet extends StatefulWidget {
+  final Activity activity;
+  const _IconPickerSheet({required this.activity});
+  @override
+  State<_IconPickerSheet> createState() => _IconPickerSheetState();
+}
+
+class _IconPickerSheetState extends State<_IconPickerSheet> {
+  String _q = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final a = widget.activity;
+    final auto = AssetCatalog.iconForKey(a.lookupKey);
+    final all = AssetCatalog.icons;
+    final q = _q.trim().toLowerCase();
+    final items = q.isEmpty ? all : all.where((p) => _niceName(p).toLowerCase().contains(q)).toList();
+    final current = a.iconPath;
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.85,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _PickerHeader(title: 'Icon wählen',
+            hint: 'Aus app/assets/icons. Tipp: Heißt die Datei wie der Eintrag '
+                '(z. B. ${a.lookupKey}.svg), wird sie automatisch verwendet.'),
+        Padding(padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Wrap(spacing: 8, runSpacing: 4, children: [
+            ActionChip(
+              avatar: Icon(Icons.auto_awesome_rounded, size: 18, color: cs.primary),
+              label: Text(auto != null ? 'Automatisch (${_niceName(auto)})' : 'Automatisch nach Name'),
+              onPressed: () => Navigator.pop(context, _kAuto)),
+            if (!kIsWeb) ActionChip(
+              avatar: Icon(Icons.folder_open_rounded, size: 18, color: cs.primary),
+              label: const Text('Vom Gerät'),
+              onPressed: () => Navigator.pop(context, _kDevice)),
+          ])),
+        Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: TextField(onChanged: (v) => setState(() => _q = v),
+            decoration: InputDecoration(hintText: 'Icon suchen …',
+              prefixIcon: const Icon(Icons.search_rounded), filled: true, fillColor: cs.surfaceContainerHighest,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.symmetric(vertical: 4)))),
+        Expanded(child: items.isEmpty
+          ? Center(child: Text('Keine Icons gefunden.', style: TextStyle(color: cs.onSurface.withOpacity(.5))))
+          : GridView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 0.78),
+            itemCount: items.length,
+            itemBuilder: (c, i) {
+              final p = items[i];
+              final sel = p == current;
+              return Semantics(button: true, selected: sel, label: _niceName(p),
+                child: InkWell(onTap: () => Navigator.pop(context, p), borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    decoration: BoxDecoration(color: AppTheme.tile(context), borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: sel ? kAccent : Colors.transparent, width: 3)),
+                    padding: const EdgeInsets.all(6),
+                    child: Column(children: [
+                      Expanded(child: Center(child: SvgPicture.asset(p, width: 40, height: 40))),
+                      const SizedBox(height: 2),
+                      ExcludeSemantics(child: Text(_niceName(p), maxLines: 2, textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w600, height: 1.05))),
+                    ]))));
+            })),
+      ]),
+    );
+  }
+}
+
+class _AudioPickerSheet extends StatefulWidget {
+  final AppState st;
+  final Activity activity;
+  const _AudioPickerSheet({required this.st, required this.activity});
+  @override
+  State<_AudioPickerSheet> createState() => _AudioPickerSheetState();
+}
+
+class _AudioPickerSheetState extends State<_AudioPickerSheet> {
+  String _q = '';
+
+  @override
+  void dispose() { try { widget.st.media.stop(); } catch (_) {} super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final a = widget.activity;
+    final voice = widget.st.settings.voice;
+    final auto = AssetCatalog.audioForKey(a.lookupKey, voice);
+    final currentKey = AssetCatalog.audioKeyOf(a.audioPath);
+    final all = AssetCatalog.audioKeys;
+    final q = _q.trim().toLowerCase();
+    final items = q.isEmpty ? all : all.where((k) => _niceName(k).toLowerCase().contains(q)).toList();
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.85,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _PickerHeader(title: 'Sprachdatei wählen',
+            hint: 'Aus app/assets/audio – Frau/Mann wird automatisch passend zur Stimme gespielt. '
+                'Tipp: ${a.lookupKey}_de_f.mp3 / _de_m.mp3 wird automatisch verwendet.'),
+        Padding(padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Wrap(spacing: 8, runSpacing: 4, children: [
+            ActionChip(
+              avatar: Icon(Icons.auto_awesome_rounded, size: 18, color: cs.primary),
+              label: Text(auto != null ? 'Automatisch (${_niceName(AssetCatalog.audioKeyOf(auto) ?? auto)})'
+                  : 'Automatisch nach Name'),
+              onPressed: () => Navigator.pop(context, _kAuto)),
+            if (!kIsWeb) ActionChip(
+              avatar: Icon(Icons.folder_open_rounded, size: 18, color: cs.primary),
+              label: const Text('Vom Gerät'),
+              onPressed: () => Navigator.pop(context, _kDevice)),
+          ])),
+        Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: TextField(onChanged: (v) => setState(() => _q = v),
+            decoration: InputDecoration(hintText: 'Sprachdatei suchen …',
+              prefixIcon: const Icon(Icons.search_rounded), filled: true, fillColor: cs.surfaceContainerHighest,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.symmetric(vertical: 4)))),
+        Expanded(child: items.isEmpty
+          ? Center(child: Text('Keine Sprachdateien gefunden.', style: TextStyle(color: cs.onSurface.withOpacity(.5))))
+          : ListView.builder(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
+            itemCount: items.length,
+            itemBuilder: (c, i) {
+              final k = items[i];
+              final path = AssetCatalog.audioPathForPickerKey(k, voice);
+              final sel = k == currentKey;
+              return ListTile(
+                selected: sel,
+                leading: IconButton(
+                  tooltip: 'Anhören',
+                  icon: Icon(Icons.play_circle_fill_rounded, size: 32, color: cs.primary),
+                  onPressed: path == null ? null : () => widget.st.previewAudio(path)),
+                title: Text(_niceName(k), style: TextStyle(fontWeight: sel ? FontWeight.w700 : FontWeight.w500)),
+                trailing: sel ? const Icon(Icons.check_rounded, color: kAccent) : null,
+                onTap: path == null ? null : () => Navigator.pop(context, path),
+              );
+            })),
+      ]),
     );
   }
 }
