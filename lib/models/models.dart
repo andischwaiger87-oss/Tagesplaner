@@ -9,6 +9,7 @@ class Activity {
   String? audioPath;     // optionaler eigener Audio-Pfad (Asset ODER Datei) – überschreibt key
   int startMinutes;      // Beginn als Minuten seit Mitternacht (7:30 = 450)
   int durationMin;       // Dauer in Minuten
+  List<String> meds;     // Medikamente dieses Schritts (einzeln abhakbar), z. B. ["Ramipril 5 mg", "ASS 100"]
 
   Activity({
     required this.id,
@@ -19,7 +20,8 @@ class Activity {
     this.audioPath,
     this.startMinutes = 0,
     this.durationMin = 10,
-  });
+    List<String>? meds,
+  }) : meds = meds ?? [];
 
   /// Schlüssel für die automatische Zuordnung von Icon & Sprachdatei.
   /// Bausteine haben einen festen [key]; eigene Einträge leiten ihn aus dem
@@ -28,6 +30,7 @@ class Activity {
 
   /// Medikamente & Co.: Die App fragt nach, ob es erledigt wurde.
   bool get needsFollowUp {
+    if (meds.isNotEmpty) return true;
     if (kFollowUpKeys.contains(lookupKey)) return true;
     final l = label.toLowerCase();
     return l.contains('medikament') || l.contains('tablette') || l.contains('insulin');
@@ -46,6 +49,7 @@ class Activity {
         'id': id, 'key': key, 'label': label, 'spoken': spoken,
         'iconPath': iconPath, 'audioPath': audioPath,
         'startMinutes': startMinutes, 'durationMin': durationMin,
+        if (meds.isNotEmpty) 'meds': meds,
       };
 
   factory Activity.fromJson(Map<String, dynamic> j) => Activity(
@@ -57,6 +61,7 @@ class Activity {
         audioPath: j['audioPath'],
         startMinutes: j['startMinutes'] ?? 0,
         durationMin: j['durationMin'] ?? 10,
+        meds: (j['meds'] is List) ? [for (final m in j['meds'] as List) '$m'] : null,
       );
 
   Activity copy() => Activity.fromJson(toJson());
@@ -159,6 +164,13 @@ const Map<String, String> kProfiles = {
   'autismus': 'Autismus',
   'demenz': 'Demenz',
 };
+
+/// Text der Medikamenten-Nachfrage, z. B. „Noch offen: Ramipril, ASS 100".
+String medReminderTitle(Activity a, [List<String>? left]) {
+  final l = left ?? a.meds;
+  if (l.isEmpty) return 'Schon erledigt? ${a.label}';
+  return 'Noch offen: ${l.join(', ')}';
+}
 
 /// Bausteine, bei denen die App nachfragt, ob sie erledigt wurden.
 const Set<String> kFollowUpKeys = {'medikament', 'tropfen', 'insulin'};

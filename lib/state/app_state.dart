@@ -82,11 +82,58 @@ class AppState extends ChangeNotifier {
   int get totalToday => _today.length;
   void toggleDone(String id) {
     _ensureDoneDate();
-    if (_done.contains(id)) { _done.remove(id); } else { _done.add(id); }
+    final on = !_done.contains(id);
+    if (on) { _done.add(id); } else { _done.remove(id); }
+    // Schritt mit mehreren Medikamenten: alle Tabletten mit abhaken bzw. zurücksetzen
+    for (final a in _today.where((x) => x.id == id)) {
+      for (final m in a.meds) { final pid = _pillId(a, m); on ? _done.add(pid) : _done.remove(pid); }
+    }
     _storage.saveDone(_doneDate, _done);
     notifyListeners();
     // Nachfrage bei Medikamenten entfällt, sobald erledigt (bzw. kommt wieder)
     if (_today.any((a) => a.id == id && a.needsFollowUp)) _reschedule();
+  }
+
+  // ---- Medikamente: einzeln abhaken ----
+  String _pillId(Activity a, String med) => '${a.id}#$med';
+  bool pillTaken(Activity a, String med) => _done.contains(_pillId(a, med));
+  int pillsLeft(Activity a) => a.meds.where((m) => !pillTaken(a, m)).length;
+
+  /// Eine Tablette abhaken. Sind alle genommen, gilt der Schritt als erledigt.
+  void togglePill(Activity a, String med) {
+    _ensureDoneDate();
+    final pid = _pillId(a, med);
+    if (_done.contains(pid)) { _done.remove(pid); } else { _done.add(pid); }
+    final wasDone = _done.contains(a.id);
+    final allTaken = a.meds.every((m) => _done.contains(_pillId(a, m)));
+    if (allTaken) { _done.add(a.id); } else { _done.remove(a.id); }
+    _storage.saveDone(_doneDate, _done);
+    notifyListeners();
+    if (wasDone != allTaken) _reschedule(); // Nachfrage abbestellen bzw. wieder planen
+  }
+
+  /// Heute bereits fällige, aber noch nicht vollständig genommene Medikamente
+  /// (ohne den gerade laufenden Schritt – der steht ohnehin groß auf „Jetzt").
+  List<Activity> get openMeds {
+    final now = _nowMin;
+    final cur = isActive ? current.id : null;
+    return [for (final a in _today)
+      if (a.needsFollowUp && a.startMinutes <= now && !_done.contains(a.id) && a.id != cur) a];
+  }
+
+  /// Medikamentenliste eines Schritts setzen. [allDays]: auch an allen anderen
+  /// Tagen beim gleichnamigen Schritt zur selben Uhrzeit übernehmen.
+  void setMeds(int i, List<String> meds, {bool allDays = true}) {
+    final a = week[editingDay]![i];
+    final clean = [for (final m in meds) if (m.trim().isNotEmpty) m.trim()];
+    for (final list in week.values) {
+      for (final x in list) {
+        if (identical(x, a) || (allDays && x.label == a.label && x.startMinutes == a.startMinutes)) {
+          x.meds = List<String>.from(clean);
+        }
+      }
+    }
+    _storage.saveWeek(week); notifyListeners(); _reschedule();
   }
 
   void _recompute({bool announce = true}) {
@@ -160,18 +207,27 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  // ---- Medikamente: Nachfrage, solange die App offen ist (Web) ----
+  // ---- Medikamente: Nachfrage im Browser (die App kann dort nichts vorplanen) ----
+  // Meldet sich nach 15 und nach 60 Minuten – auch wenn die App erst später
+  // geöffnet wird (nicht nur in genau dieser Minute).
   final Set<String> _followedUp = {};
   void _checkFollowUps(List<Activity> p, double now) {
-    if (!kIsWeb) return; // native App: geplante Benachrichtigung übernimmt das
+    if (!kIsWeb) return; // native App: geplante Benachrichtigungen übernehmen das
     for (final a in p) {
       if (!a.needsFollowUp || _done.contains(a.id)) continue;
-      final t = a.startMinutes + 15;
-      final key = '$_doneDate/${a.id}';
-      if (now >= t && now < t + 1 && !_followedUp.contains(key)) {
-        _followedUp.add(key);
-        try { _notif.showNow('Schon erledigt? ${a.label}', 'Bitte in der App als erledigt markieren.',
+      // fällige Stufen (15 / 60 Min.) – mehrere auf einmal fällig = nur EINE Meldung
+      final due = [for (final after in const [15, 60])
+        if (now >= a.startMinutes + after && !_followedUp.contains('$_doneDate/${a.id}/$after')) after];
+      if (due.isNotEmpty) {
+        for (final after in const [15, 60]) {
+          if (now >= a.startMinutes + after) _followedUp.add('$_doneDate/${a.id}/$after');
+        }
+        final left = [for (final m in a.meds) if (!pillTaken(a, m)) m];
+        try { _notif.showNow(medReminderTitle(a, left), 'Bitte einnehmen und in der App abhaken.',
             silent: settings.discreet); } catch (_) {}
+        if (settings.vibrate) {
+          try { Vibration.hasVibrator().then((v) { if (v == true) Vibration.vibrate(duration: 300); }); } catch (_) {}
+        }
       }
     }
   }

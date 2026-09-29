@@ -174,6 +174,16 @@ class EditorScreen extends StatelessWidget {
     st.setAudio(i, r); _snack(c, 'Sprachdatei zugewiesen');
   }
 
+  /// Medikamente eines Schritts: einfache Liste, jede Tablette wird auf „Jetzt" einzeln abgehakt.
+  Future<void> _editMeds(BuildContext c, AppState st, int i) async {
+    final a = st.plan[i];
+    final r = await showDialog<(List<String>, bool)>(context: c,
+        builder: (_) => _MedsDialog(initial: a.meds, label: a.label, time: a.timeLabel));
+    if (r == null || !c.mounted) return;
+    st.setMeds(i, r.$1, allDays: r.$2);
+    _snack(c, r.$1.isEmpty ? 'Medikamente entfernt' : '${r.$1.length} Medikament(e) gespeichert');
+  }
+
   bool _hasIcon(Activity a) =>
       (a.iconPath != null && a.iconPath!.isNotEmpty) || AssetCatalog.iconForKey(a.lookupKey) != null;
   bool _hasAudio(Activity a, AppState st) =>
@@ -223,6 +233,13 @@ class EditorScreen extends StatelessWidget {
           const SizedBox(width: 10),
           _chip(c, Icons.timelapse_rounded, fmtDuration(a.durationMin), () => _setDuration(c, st, i), cs),
         ]),
+        if (a.needsFollowUp) Padding(padding: const EdgeInsets.only(top: 8),
+          child: SizedBox(width: double.infinity, child: OutlinedButton.icon(
+            onPressed: () => _editMeds(c, st, i),
+            icon: const Icon(Icons.medication_outlined, size: 20),
+            label: Text(a.meds.isEmpty ? 'Medikamente eintragen' : 'Medikamente (${a.meds.length}): ${a.meds.join(', ')}',
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+          ))),
         if (isCustom) Padding(padding: const EdgeInsets.only(top: 8),
           child: Row(children: [
             Expanded(child: OutlinedButton.icon(onPressed: () => _pickIcon(c, st, i),
@@ -589,6 +606,73 @@ class _AudioPickerSheetState extends State<_AudioPickerSheet> {
               );
             })),
       ]),
+    );
+  }
+}
+
+
+class _MedsDialog extends StatefulWidget {
+  final List<String> initial;
+  final String label;
+  final String time;
+  const _MedsDialog({required this.initial, required this.label, required this.time});
+  @override
+  State<_MedsDialog> createState() => _MedsDialogState();
+}
+
+class _MedsDialogState extends State<_MedsDialog> {
+  late final List<String> _meds = List<String>.from(widget.initial);
+  final _c = TextEditingController();
+  bool _allDays = true;
+
+  @override
+  void dispose() { _c.dispose(); super.dispose(); }
+
+  void _add() {
+    final t = _c.text.trim();
+    if (t.isEmpty || _meds.contains(t)) return;
+    setState(() { _meds.add(t); _c.clear(); });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return AlertDialog(
+      title: Text('${widget.label} · ${widget.time} Uhr'),
+      content: SizedBox(width: 360, child: SingleChildScrollView(child: Column(
+          mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Welche Medikamente gehören zu dieser Uhrzeit? Jedes wird auf „Jetzt" einzeln abgehakt.',
+            style: TextStyle(fontSize: 13, color: cs.onSurface.withOpacity(.65))),
+        const SizedBox(height: 10),
+        for (int k = 0; k < _meds.length; k++) ListTile(
+          dense: true, contentPadding: EdgeInsets.zero,
+          leading: Icon(Icons.medication_rounded, color: cs.primary),
+          title: Text(_meds[k], style: const TextStyle(fontSize: 16)),
+          trailing: IconButton(tooltip: 'Entfernen', icon: const Icon(Icons.close_rounded),
+              onPressed: () => setState(() => _meds.removeAt(k))),
+        ),
+        Row(children: [
+          Expanded(child: TextField(controller: _c, autofocus: _meds.isEmpty,
+            textCapitalization: TextCapitalization.sentences,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _add(),
+            decoration: const InputDecoration(hintText: 'z. B. Ramipril 5 mg', isDense: true,
+                border: OutlineInputBorder()))),
+          const SizedBox(width: 8),
+          IconButton.filled(onPressed: _add, icon: const Icon(Icons.add_rounded), tooltip: 'Hinzufügen'),
+        ]),
+        const SizedBox(height: 8),
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero, dense: true,
+          value: _allDays, onChanged: (v) => setState(() => _allDays = v ?? true),
+          title: const Text('An allen Tagen zur selben Uhrzeit übernehmen', style: TextStyle(fontSize: 14)),
+        ),
+      ]))),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Abbrechen')),
+        FilledButton(onPressed: () { _add(); Navigator.pop(context, (_meds, _allDays)); },
+            child: const Text('Speichern')),
+      ],
     );
   }
 }

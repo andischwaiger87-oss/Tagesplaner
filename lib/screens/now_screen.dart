@@ -8,6 +8,7 @@ import '../services/image_util.dart';
 import '../models/models.dart';
 import '../util/format.dart';
 import 'help_screen.dart';
+import '../widgets/med_widgets.dart';
 
 String _todayLabel() {
   final n = DateTime.now();
@@ -80,6 +81,11 @@ class NowScreen extends StatelessWidget {
               : KeyedSubtree(key: ValueKey(a.id), child: _bigCard(context, st, a, cs, s)),
         ),
 
+        if (st.openMeds.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          OpenMedsCard(open: st.openMeds),
+        ],
+
         if (s.showHelpButton) ...[
           const SizedBox(height: 16),
           const HelpButton(),
@@ -135,7 +141,10 @@ class NowScreen extends StatelessWidget {
           ]),
         ))),
         const SizedBox(height: 10),
-        TextButton.icon(
+        if (a.meds.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          MedChecklist(activity: a),
+        ] else TextButton.icon(
           onPressed: () => st.toggleDone(a.id),
           icon: Icon(st.isDone(a.id) ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
               color: st.isDone(a.id) ? cs.primary : cs.onSurface.withOpacity(.5)),
@@ -293,6 +302,7 @@ class _MinimalNow extends StatelessWidget {
             Text('Für heute geschafft', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: cs.onSurface)),
           ],
           const Spacer(),
+          if (st.openMeds.isNotEmpty) OpenMedsCard(open: st.openMeds.take(1).toList(), large: true),
           if (s.showHelpButton) const HelpButton(large: true),
           const SizedBox(height: 8),
         ]),
@@ -329,18 +339,21 @@ class _MinimalNow extends StatelessWidget {
           ),
         )),
         const SizedBox(height: 14),
-        Pressable(onTap: () => st.toggleDone(a.id), child: Padding(
+        Pressable(onTap: () => a.meds.isNotEmpty ? showMedSheet(context, a) : st.toggleDone(a.id), child: Padding(
           padding: const EdgeInsets.all(8),
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(st.isDone(a.id) ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+            Icon(st.isDone(a.id) ? Icons.check_circle_rounded
+                : (a.meds.isNotEmpty ? Icons.medication_rounded : Icons.radio_button_unchecked_rounded),
                 size: 30, color: st.isDone(a.id) ? cs.primary : cs.onSurface.withOpacity(.45)),
             const SizedBox(width: 10),
-            Text(st.isDone(a.id) ? 'Erledigt' : 'Erledigt',
+            Text(st.isDone(a.id) ? 'Erledigt'
+                : (a.meds.isNotEmpty ? 'Abhaken (${a.meds.length - st.pillsLeft(a)}/${a.meds.length})' : 'Erledigt'),
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600,
                     color: st.isDone(a.id) ? cs.primary : cs.onSurface.withOpacity(.6))),
           ]),
         )),
         const Spacer(),
+        if (st.openMeds.isNotEmpty) OpenMedsCard(open: st.openMeds.take(1).toList(), large: true),
         if (s.showHelpButton) ...[const HelpButton(large: true), const SizedBox(height: 12)],
         if (next != null && s.showNext)
           Text('danach: ${next!.label}',

@@ -134,3 +134,13 @@ flutter run -d chrome
 - **Fix:** Erinnerungen rissen nach ~2–3 Tagen ab (Deckel 60) – jetzt Android 400, iOS 60.
 - **PIN-Sperre** für Bearbeiten & Einstellungen (10 Min. offen, „PIN vergessen" ohne Datenverlust).
 - **Sicherung** als Text (kopieren/einfügen), wird vor dem Einspielen vollständig geprüft.
+
+
+## Medikamente (29.9.)
+- **Mehrere Medikamente pro Uhrzeit:** Bearbeiten → Schritt „Medikament" → „Medikamente eintragen".
+  Auf „Jetzt" wird jede Tablette einzeln abgehakt; sind alle genommen, ist der Schritt erledigt.
+  Übernahme auf alle Tage zur selben Uhrzeit per Häkchen.
+- **„Noch offen"-Karte auf „Jetzt":** bleibt sichtbar, bis alles abgehakt ist – auch wenn längst
+  der nächste Schritt läuft (unabhängig von Benachrichtigungen).
+- **Nachfrage-Fix:** Im Browser kam die Nachfrage nur, wenn die App genau in Minute 15 offen war.
+  Jetzt: nach 15 und 60 Min., auch beim späteren Öffnen (einmalig). App: geplante Meldungen +15/+60.

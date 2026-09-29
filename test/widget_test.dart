@@ -77,4 +77,18 @@ void main() {
     expect(Activity(id: 'b', label: 'Tablette Abend').needsFollowUp, true);
     expect(Activity(id: 'c', key: 'kochen', label: 'Kochen').needsFollowUp, false);
   });
+
+  test('Mehrere Medikamente pro Schritt: Speichern & alte Pläne', () {
+    final a = Activity(id: 'm1', key: 'medikament', label: 'Medikament', startMinutes: 480,
+        meds: ['Ramipril 5 mg', 'ASS 100']);
+    final r = Activity.fromJson(a.toJson());
+    expect(r.meds, ['Ramipril 5 mg', 'ASS 100']);
+    expect(r.needsFollowUp, true);
+    // alter Plan ohne Feld "meds"
+    final old = Activity.fromJson({'id': 'x', 'label': 'Kochen', 'startMinutes': 600, 'durationMin': 30});
+    expect(old.meds, isEmpty);
+    expect(old.toJson().containsKey('meds'), false);
+    expect(medReminderTitle(a, ['ASS 100']), 'Noch offen: ASS 100');
+    expect(medReminderTitle(Activity(id: 'y', label: 'Medikament')), 'Schon erledigt? Medikament');
+  });
 }

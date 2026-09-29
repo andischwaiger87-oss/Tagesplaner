@@ -79,7 +79,7 @@ class NotificationService {
   /// Bei Medikamenten kommt nach [followUpMin] Minuten eine Nachfrage –
   /// außer der Schritt ist heute schon als erledigt markiert ([doneToday]).
   Future<void> scheduleWeek(Map<int, List<Activity>> week,
-      {bool silent = false, Set<String> doneToday = const {}, int followUpMin = 15}) async {
+      {bool silent = false, Set<String> doneToday = const {}, List<int> followUpMin = const [15, 60]}) async {
     if (kIsWeb) return; // Browser kann keine Termine im Voraus planen
     await init();
     await _plugin.cancelAll();
@@ -115,11 +115,13 @@ class NotificationService {
         if (when.isAfter(now)) {
           await plan(id++, 'Jetzt: ${a.label}', 'Tippe, um die App zu öffnen.', when);
         }
-        if (a.needsFollowUp && count < maxNotifs && !(offset == 0 && doneToday.contains(a.id))) {
-          final f = when.add(Duration(minutes: followUpMin));
-          if (f.isAfter(now)) {
-            await plan(id++, 'Schon erledigt? ${a.label}',
-                'Bitte in der App als erledigt markieren.', f);
+        if (a.needsFollowUp && !(offset == 0 && doneToday.contains(a.id))) {
+          for (final m in followUpMin) {
+            if (count >= maxNotifs) break;
+            final f = when.add(Duration(minutes: m));
+            if (f.isAfter(now)) {
+              await plan(id++, medReminderTitle(a), 'Bitte einnehmen und in der App abhaken.', f);
+            }
           }
         }
       }
